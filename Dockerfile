@@ -2,7 +2,11 @@
 
 FROM --platform=$TARGETPLATFORM mcr.microsoft.com/devcontainers/typescript-node:22
 
-# Set timezone and noninteractive mode for apt-get
+# Load build arguments for multi-platform support
+ARG TARGETPLATFORM
+ARG TARGETARCH
+
+# Set timezone and non-interactive frontend for apt
 ARG TZ="Asia/Seoul"
 ENV TZ=${TZ}
 ENV DEBIAN_FRONTEND=noninteractive
