@@ -17,7 +17,7 @@ RUN apt-get update && \
     git gh jq ripgrep \
     less procps fzf man-db unzip gnupg2 \
     iproute2 dnsutils iputils-ping net-tools \
-    vim tree && \
+    vim tree tmux && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
