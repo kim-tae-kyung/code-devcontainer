@@ -3,7 +3,8 @@
 FROM --platform=$TARGETPLATFORM mcr.microsoft.com/devcontainers/typescript-node:22
 
 # Set timezone and noninteractive mode for apt-get
-ENV TZ="${TZ:-Asia/Seoul}"
+ARG TZ="Asia/Seoul"
+ENV TZ=${TZ}
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Install essential packages and clean up
@@ -18,7 +19,7 @@ RUN apt-get update && \
 
 # Install Go (Golang)
 ENV GO_VERSION=1.24.4
-RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz -o /tmp/go.tar.gz \
+RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tar.gz \
     && rm -rf /usr/local/go \
     && tar -C /usr/local -xzf /tmp/go.tar.gz \
     && rm /tmp/go.tar.gz
