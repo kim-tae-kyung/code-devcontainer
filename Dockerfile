@@ -18,7 +18,7 @@ RUN apt-get update && \
 
 # Install Go (Golang)
 ENV GO_VERSION=1.24.4
-RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz -o /tmp/go.tar.gz \
+RUN curl -fsSL https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz -o /tmp/go.tar.gz \
     && rm -rf /usr/local/go \
     && tar -C /usr/local -xzf /tmp/go.tar.gz \
     && rm /tmp/go.tar.gz
