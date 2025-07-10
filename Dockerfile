@@ -13,7 +13,7 @@ ENV TZ=${TZ}
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set Go version via build argument.
-ARG GO_VERSION=1.24.4
+ARG GO_VERSION=1.24.5
 
 # Install system dependencies and Go in a single layer.
 RUN apt-get update && \
