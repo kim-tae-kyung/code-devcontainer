@@ -48,8 +48,8 @@ RUN echo '#!/bin/sh' > /usr/local/bin/gemini && \
 # Switch to non-root user for security.
 USER node
 
-# Install global npm packages.
-RUN npm install -g @anthropic-ai/claude-code
+# Install claude code.
+RUN curl -fsSL claude.ai/install.sh | bash
 
 # Set working directory.
 WORKDIR /workspace
