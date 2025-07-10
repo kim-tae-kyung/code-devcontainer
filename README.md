@@ -21,9 +21,9 @@ The environment is built upon a Node.js and TypeScript base and includes the Goo
 
 ### With VS Code Dev Containers (Recommended)
 
-1.  Clone this repository.
-2.  Open the repository folder in Visual Studio Code.
-3.  When prompted, click "Reopen in Container" to build and launch the dev container.
+1. Clone this repository.
+2. Open the repository folder in Visual Studio Code.
+3. When prompted, click "Reopen in Container" to build and launch the dev container.
 
 ### Manual Image Build
 
@@ -36,5 +36,23 @@ podman build --no-cache --force-rm --platform linux/amd64,linux/arm64 --tag ghcr
 ## Configuration
 
 - **`devcontainer.json`**: This file defines the dev container setup. You can customize VS Code settings, extensions, and environment variables here.
-- **Configuration Persistence**: The local `~/.claude` directory is mounted into the container at `/home/node/.claude`. This allows your Claude CLI configuration and credentials to persist across container sessions.
+- **Configuration Persistence**: The local `~/.claude` and `~/.gemini` directories are mounted into the container at `/home/node/.claude` and `/home/node/.gemini` respectively. This allows your Claude and Gemini CLI configurations and credentials to persist across container sessions.
+- **Forwarded Ports**: The following ports are forwarded from the container to your local machine:
+  - `8080`: Golang Backend Server
+  - `5173`: Vite Dev Server
 - **Workspace**: The project folder is mounted into the `/workspace` directory in the container.
+- **Gemini CLI Configuration (`~/.gemini/settings.json`)**: This file allows you to customize the behavior of the Gemini CLI. The `devcontainer.json` ensures this file persists across container sessions. An example configuration is shown below:
+
+```json
+{
+  "theme": "Default",
+  "selectedAuthType": "oauth-personal",
+  "contextFileName": "CLAUDE.md",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    }
+  }
+}
+```
