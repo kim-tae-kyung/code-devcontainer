@@ -32,8 +32,7 @@ RUN apt-get update && \
   rm -rf /var/lib/apt/lists/*
 
 # Set environment variables.
-ENV GOPATH="/go"
-ENV PATH="/usr/local/go/bin:${GOPATH}/bin:${PATH}"
+ENV PATH="/usr/local/go/bin:${PATH}"
 ENV EDITOR=vim
 ENV LANG=en_US.UTF-8
 
