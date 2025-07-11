@@ -21,7 +21,8 @@ RUN apt-get update && \
   git gh jq ripgrep curl \
   less procps fzf man-db unzip gnupg2 \
   iproute2 dnsutils iputils-ping net-tools \
-  vim tree tmux && \
+  vim tree tmux \
+  postgresql-client && \
   # Install Go.
   echo "Installing Go version: ${GO_VERSION}" && \
   curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tar.gz && \
