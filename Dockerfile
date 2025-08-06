@@ -49,8 +49,9 @@ RUN echo '#!/bin/sh' > /usr/local/bin/gemini && \
 # Switch to non-root user for security.
 USER node
 
-# Install claude code.
-RUN curl -fsSL claude.ai/install.sh | bash
+# Install claude code via npm and migrate to local installation.
+RUN npm install -g @anthropic-ai/claude-code && \
+  CI=true claude migrate-installer
 
 # Set working directory.
 WORKDIR /workspace
