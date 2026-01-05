@@ -19,10 +19,6 @@
 		}
 	},
 	"remoteUser": "node",
-	"mounts": [
-		"source=${localEnv:HOME}/.claude,target=/home/node/.claude,type=bind",
-		"source=${localEnv:HOME}/.gemini,target=/home/node/.gemini,type=bind"
-	],
 	"remoteEnv": {
 		"NODE_OPTIONS": "--max-old-space-size=4096",
 		"CLAUDE_CONFIG_DIR": "/home/node/.claude"

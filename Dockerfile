@@ -13,7 +13,7 @@ ENV TZ=${TZ}
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set Go version via build argument.
-ARG GO_VERSION=1.24.5
+ARG GO_VERSION=1.25.5
 
 # Install system dependencies and Go in a single layer.
 RUN apt-get update && \
@@ -41,17 +41,20 @@ ENV LANG=en_US.UTF-8
 RUN mkdir -p /workspace /home/node/.claude /home/node/.gemini && \
   chown -R node:node /workspace /home/node/.claude /home/node/.gemini
 
-# Create a system-wide 'gemini' command wrapper.
-RUN echo '#!/bin/sh' > /usr/local/bin/gemini && \
-  echo 'exec npx https://github.com/google-gemini/gemini-cli "$@"' >> /usr/local/bin/gemini && \
-  chmod +x /usr/local/bin/gemini
-
 # Switch to non-root user for security.
 USER node
 
-# Install claude code via npm and migrate to local installation.
-RUN npm install -g @anthropic-ai/claude-code && \
-  CI=true claude migrate-installer
+# Install Claude Code.
+RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Install Gemini CLI.
+RUN npm install -g @google/gemini-cli
+
+# Configure Context7 MCP for Claude Code.
+RUN echo '{"mcpServers":{"context7":{"command":"npx","args":["-y","@upstash/context7-mcp"]}}}' > /home/node/.claude/mcp.json
+
+# Configure Context7 MCP for Gemini CLI.
+RUN echo '{"mcpServers":{"context7":{"command":"npx","args":["-y","@upstash/context7-mcp"]}}}' > /home/node/.gemini/settings.json
 
 # Set working directory.
 WORKDIR /workspace
