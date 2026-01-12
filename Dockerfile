@@ -44,11 +44,16 @@ RUN mkdir -p /workspace /home/node/.claude /home/node/.gemini && \
 # Switch to non-root user for security.
 USER node
 
-# Install Claude Code.
-RUN curl -fsSL https://claude.ai/install.sh | bash
+# Cache bust argument for CLI tools (changes each build to ensure latest versions).
+ARG CACHEBUST=1
 
-# Install Gemini CLI.
-RUN npm install -g @google/gemini-cli
+# Install Claude Code (always fetch latest).
+RUN echo "Cache bust: ${CACHEBUST}" && \
+    curl -fsSL https://claude.ai/install.sh | bash
+
+# Install Gemini CLI (always fetch latest).
+RUN echo "Cache bust: ${CACHEBUST}" && \
+    npm install -g @google/gemini-cli
 
 # Configure Context7 MCP for Claude Code.
 RUN echo '{"mcpServers":{"context7":{"command":"npx","args":["-y","@upstash/context7-mcp"]}}}' > /home/node/.claude/mcp.json
