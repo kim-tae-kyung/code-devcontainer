@@ -14,8 +14,8 @@ OVERRIDES=$(jq -n \
         {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"},
         {key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}
     ]}}
-    | if $sa != "" then .spec.serviceAccountName = $sa else . end
-    | if $node != "" then .spec.nodeName = $node else . end')
+    | if ($sa | length) > 0 then .spec.serviceAccountName = $sa else . end
+    | if ($node | length) > 0 then .spec.nodeName = $node else . end')
 
 kubectl run "$POD_NAME" \
     --image="$IMAGE" \
