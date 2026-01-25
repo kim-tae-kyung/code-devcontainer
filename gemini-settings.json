@@ -1,0 +1,51 @@
+{
+  "general": {
+    "preferredEditor": "vscode",
+    "previewFeatures": true,
+    "enablePromptCompletion": true
+  },
+  "model": {
+    "name": "auto-gemini-3"
+  },
+  "context": {
+    "fileName": ["GEMINI.md", "CLAUDE.md", "AGENTS.md"]
+  },
+  "ui": {
+    "showLineNumbers": true,
+    "showCitations": true,
+    "showModelInfoInChat": true
+  },
+  "experimental": {
+    "enableAgents": true,
+    "plan": true
+  },
+  "mcp": {
+    "allowed": [
+      "context7"
+    ]
+  },
+  "tools": {
+    "allowed": [
+      "google_web_search",
+      "web_fetch"
+    ]
+  },
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        " @upstash/context7-mcp"
+      ]
+    }
+  },
+  "security": {
+    "enablePermanentToolApproval": true,
+    "environmentVariableRedaction": {
+      "enabled": true
+    },
+    "auth": {
+      "selectedType": "oauth-personal"
+    }
+  }
+}

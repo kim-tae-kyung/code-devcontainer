@@ -7,13 +7,23 @@
 			"extensions": [
 				"dbaeumer.vscode-eslint",
 				"esbenp.prettier-vscode",
-				"golang.Go"
+				"golang.Go",
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"ms-python.black-formatter",
+				"redhat.vscode-yaml"
 			],
 			"settings": {
 				"editor.formatOnSave": true,
 				"editor.defaultFormatter": "esbenp.prettier-vscode",
 				"editor.codeActionsOnSave": {
 					"source.fixAll.eslint": "explicit"
+				},
+				"[python]": {
+					"editor.defaultFormatter": "ms-python.black-formatter"
+				},
+				"[go]": {
+					"editor.defaultFormatter": "golang.Go"
 				}
 			}
 		}
@@ -21,7 +31,8 @@
 	"remoteUser": "node",
 	"remoteEnv": {
 		"NODE_OPTIONS": "--max-old-space-size=4096",
-		"CLAUDE_CONFIG_DIR": "/home/node/.claude"
+		"CLAUDE_CONFIG_DIR": "/home/node/.claude",
+		"GOPATH": "/home/node/go"
 	},
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
 	"workspaceFolder": "/workspace",
@@ -31,7 +42,7 @@
 	],
 	"portsAttributes": {
 		"8080": {
-			"label": "Golang Backend Server",
+			"label": "Backend Server",
 			"onAutoForward": "notify"
 		},
 		"5173": {

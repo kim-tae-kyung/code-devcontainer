@@ -6,14 +6,16 @@ The environment is built upon a Node.js and TypeScript base and includes the Goo
 
 ## Features
 
-- **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:22`
-- **Languages**: Node.js, Go (version `1.25.5`)
+- **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24`
+- **Languages**: Node.js, Python 3, Go (latest)
 - **AI Tools**:
   - `@google/gemini-cli`
   - `@anthropic-ai/claude-code`
-- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `fzf`, `vim`, `tree`, and common networking utilities.
+- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `fzf`, `vim`, `tree`, `tmux`, and common networking utilities.
+- **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
 - **VS Code Integration**:
-  - Pre-installed extensions: ESLint, Prettier, Go.
+  - Pre-installed extensions: ESLint, Prettier, Go, Python, Pylance, Black Formatter, YAML.
+  - Language-specific formatters for Python (Black) and Go.
   - Settings for `formatOnSave` enabled.
 
 ## Usage
@@ -38,11 +40,27 @@ gemini
 
 ## Build & Push
 
+### Via GitHub Actions
+
 Container images are built and pushed via GitHub Actions.
 
 1. Go to **Actions** tab in the repository
 2. Select **Build and Push Container Image** workflow
 3. Click **Run workflow**
+
+### Local Build (Podman)
+
+Build and push multi-architecture images manually:
+
+```bash
+# Build for linux/amd64 and linux/arm64
+podman build --no-cache --force-rm \
+  --platform linux/amd64,linux/arm64 \
+  --manifest ghcr.io/kim-tae-kyung/code-devcontainer:latest .
+
+# Push to registry
+podman manifest push --rm ghcr.io/kim-tae-kyung/code-devcontainer:latest
+```
 
 ## Configuration
 
