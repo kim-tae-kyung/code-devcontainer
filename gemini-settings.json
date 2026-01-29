@@ -43,9 +43,6 @@
     "enablePermanentToolApproval": true,
     "environmentVariableRedaction": {
       "enabled": true
-    },
-    "auth": {
-      "selectedType": "oauth-personal"
     }
   }
 }

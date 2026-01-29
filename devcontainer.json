@@ -30,9 +30,7 @@
 	},
 	"remoteUser": "node",
 	"remoteEnv": {
-		"NODE_OPTIONS": "--max-old-space-size=4096",
-		"CLAUDE_CONFIG_DIR": "/home/node/.claude",
-		"GOPATH": "/home/node/go"
+		"NODE_OPTIONS": "--max-old-space-size=4096"
 	},
 	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
 	"workspaceFolder": "/workspace",
