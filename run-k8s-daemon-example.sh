@@ -18,11 +18,23 @@ OVERRIDES=$(jq -n \
     * (if $sa != "" then {spec: {serviceAccountName: $sa}} else {} end)
     * (if $node != "" then {spec: {nodeName: $node}} else {} end)')
 
+NS_FLAG="${NAMESPACE:+--namespace=$NAMESPACE}"
+
 kubectl run "$POD_NAME" \
     --image="$IMAGE" \
     --image-pull-policy=IfNotPresent \
-    ${NAMESPACE:+--namespace="$NAMESPACE"} \
+    ${NS_FLAG} \
     --overrides="$OVERRIDES" \
     -- sleep infinity
 
-echo "Done! Connect: kubectl exec -it $POD_NAME ${NAMESPACE:+-n $NAMESPACE} -- /bin/bash"
+echo "Waiting for pod to be ready..."
+kubectl wait --for=condition=Ready "pod/$POD_NAME" ${NS_FLAG} --timeout=120s
+
+if [ -d "${HOME}/.ssh" ]; then
+    echo "Copying SSH keys..."
+    kubectl cp "${HOME}/.ssh" "${POD_NAME}:/home/node/.ssh" ${NS_FLAG}
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- chmod 700 /home/node/.ssh
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- sh -c 'chmod 600 /home/node/.ssh/*'
+fi
+
+echo "Done! Connect: kubectl exec -it $POD_NAME ${NS_FLAG} -- /bin/bash"
