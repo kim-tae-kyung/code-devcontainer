@@ -53,10 +53,10 @@ RUN pip3 install --user --break-system-packages python-lsp-server[all] black iso
 COPY --chown=node:node claude-settings.json /home/node/.claude/settings.json
 COPY --chown=node:node gemini-settings.json /home/node/.gemini/settings.json
 
-# Install Claude Code (always latest via cache invalidation)
-RUN date && curl -fsSL https://claude.ai/install.sh | bash
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Install Gemini CLI (always latest via cache invalidation)
-RUN date && npm install -g @google/gemini-cli
+# Install Gemini CLI
+RUN npm install -g @google/gemini-cli
 
 WORKDIR /workspace
