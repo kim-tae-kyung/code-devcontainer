@@ -1,8 +1,10 @@
 {
+  "$schema": "https://raw.githubusercontent.com/google-gemini/gemini-cli/main/schemas/settings.schema.json",
   "general": {
     "preferredEditor": "vscode",
-    "previewFeatures": true,
-    "enablePromptCompletion": true
+    "plan": {
+      "modelRouting": true
+    }
   },
   "model": {
     "name": "auto-gemini-3"
@@ -15,28 +17,16 @@
     "showCitations": true,
     "showModelInfoInChat": true
   },
-  "experimental": {
-    "enableAgents": true,
-    "plan": true
-  },
   "mcp": {
-    "allowed": [
-      "context7"
-    ]
+    "allowed": ["context7"]
   },
   "tools": {
-    "allowed": [
-      "google_web_search",
-      "web_fetch"
-    ]
+    "allowed": ["google_web_search", "web_fetch"]
   },
   "mcpServers": {
     "context7": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@upstash/context7-mcp"
-      ]
+      "args": ["-y", "@upstash/context7-mcp"]
     }
   },
   "security": {
