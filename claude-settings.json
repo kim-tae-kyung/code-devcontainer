@@ -4,16 +4,12 @@
   "cleanupPeriodDays": 7,
   "permissions": {
     "allow": [
-      "Read",
       "WebFetch",
       "WebSearch",
       "mcp__context7",
-      "Bash(ls:*)",
-      "Bash(find:*)",
-      "Bash(sed:*)",
-      "Bash(curl:*)",
-      "Bash(git:*)",
-      "Bash(npm:*)"
+      "mcp__playwright",
+      "Bash(git *)",
+      "Bash(gh *)"
     ]
   }
 }

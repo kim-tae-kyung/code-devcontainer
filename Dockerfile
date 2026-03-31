@@ -28,6 +28,12 @@ RUN sudo apt-get update && \
   sudo apt-get clean && \
   sudo rm -rf /var/lib/apt/lists/*
 
+# Install Chromium for headless browser testing via Playwright MCP
+ENV PLAYWRIGHT_BROWSERS_PATH=/home/node/.cache/ms-playwright
+RUN npx playwright install --with-deps chromium && \
+  sudo apt-get clean && \
+  sudo rm -rf /var/lib/apt/lists/*
+
 # Environment variables
 ENV PATH="/usr/local/go/bin:${PATH}"
 ENV GOPATH="/home/node/go"
@@ -51,6 +57,7 @@ RUN pip3 install --user --break-system-packages python-lsp-server[all] black iso
 
 # Copy configuration files
 COPY --chown=node:node claude-settings.json /home/node/.claude/settings.json
+COPY --chown=node:node claude-mcp.json /home/node/.claude.json
 COPY --chown=node:node gemini-settings.json /home/node/.gemini/settings.json
 
 # Install Claude Code

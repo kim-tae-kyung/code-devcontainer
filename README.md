@@ -11,6 +11,7 @@ The environment is built upon a Node.js and TypeScript base and includes the Goo
 - **AI Tools**:
   - `@google/gemini-cli`
   - `@anthropic-ai/claude-code`
+- **Browser Automation**: Headless Chromium via Playwright MCP (for UI testing/debugging in containers)
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `fzf`, `vim`, `tree`, `tmux`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
 - **VS Code Integration**:
@@ -20,11 +21,23 @@ The environment is built upon a Node.js and TypeScript base and includes the Goo
 
 ## Usage
 
-### With VS Code Dev Containers (Recommended)
+### With VS Code Dev Containers
 
 1. Clone this repository.
 2. Open the repository folder in Visual Studio Code.
 3. When prompted, click "Reopen in Container" to build and launch the dev container.
+
+### With Kubernetes
+
+Deploy as a persistent pod and connect via `kubectl exec`:
+
+```bash
+# Create pod (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
+./run-k8s-daemon-example.sh
+
+# Connect
+kubectl exec -it devcontainer-<timestamp> -- /bin/bash
+```
 
 ### Authentication
 
@@ -37,6 +50,24 @@ claude
 # Gemini CLI (opens browser for OAuth)
 gemini
 ```
+
+### Browser Automation (Playwright MCP)
+
+Headless Chromium is pre-installed for browser automation via the Playwright MCP server. This enables Claude Code to navigate pages, take screenshots, click elements, and read console logs — all within a headless K8s pod or container.
+
+```bash
+# Start your dev server
+npm run dev  # e.g. Vite on localhost:5173
+
+# In Claude Code, ask:
+# "Navigate to http://localhost:5173 and take a screenshot"
+# "Check for console errors on the page"
+# "Click the submit button and verify the result"
+```
+
+Configuration files:
+- `claude-settings.json` → `~/.claude/settings.json` (permissions)
+- `claude-mcp.json` → `~/.claude.json` (MCP server config)
 
 ## Build & Push
 
