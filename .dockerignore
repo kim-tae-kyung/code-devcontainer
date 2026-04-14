@@ -1,0 +1,10 @@
+.git
+.github
+node_modules
+__pycache__
+.venv
+dist
+build
+*.log
+.DS_Store
+README.md

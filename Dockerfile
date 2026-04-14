@@ -41,6 +41,9 @@ ENV PATH="${GOPATH}/bin:${PATH}"
 ENV EDITOR=vim
 ENV LANG=en_US.UTF-8
 
+# Ensure Go PATH persists in tmux login shells (which reset PATH via /etc/profile)
+RUN echo 'export PATH="/usr/local/go/bin:/home/node/go/bin:$PATH"' | sudo tee /etc/profile.d/golang.sh
+
 # OCI Labels
 LABEL org.opencontainers.image.source="https://github.com/kim-tae-kyung/code-devcontainer"
 LABEL org.opencontainers.image.description="Development container with Claude Code and Gemini CLI"
