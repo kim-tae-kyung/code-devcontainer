@@ -6,5 +6,22 @@
   "osvVulnerabilityAlerts": true,
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
-  "gitAuthor": "Renovate Bot <1317655+tkkim92@users.noreply.github.com>"
+  "gitAuthor": "Renovate Bot <1317655+tkkim92@users.noreply.github.com>",
+  "packageRules": [
+    {
+      "description": "Automerge minor/patch/digest updates via platform auto-merge",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Major updates require manual review",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Group all GitHub Actions updates into one PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions dependencies"
+    }
+  ]
 }
