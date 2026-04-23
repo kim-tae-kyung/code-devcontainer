@@ -1,18 +1,27 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-settings.json",
-  "attribution": {"commit": "", "pr": ""},
-  "autoMemoryEnabled": false,
   "cleanupPeriodDays": 7,
-  "effortLevel": "xhigh",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "env": {
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false"
+  },
   "permissions": {
-    "defaultMode": "auto",
     "allow": [
       "WebFetch",
       "WebSearch",
       "mcp__context7",
+      "mcp__plugin_context7_context7",
       "mcp__playwright",
       "Bash(git *)",
       "Bash(gh *)"
-    ]
-  }
+    ],
+    "defaultMode": "auto"
+  },
+  "effortLevel": "xhigh",
+  "autoMemoryEnabled": false,
+  "skipDangerousModePermissionPrompt": true,
+  "skipAutoPermissionPrompt": true
 }
