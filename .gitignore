@@ -15,4 +15,4 @@ coverage/
 .pytest_cache/
 tmp/
 .claude/settings.local.json
-.gemini/settings.local.json
+.codex/config.local.toml

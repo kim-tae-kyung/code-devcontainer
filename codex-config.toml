@@ -1,0 +1,23 @@
+model_reasoning_effort = "xhigh"
+approval_policy = "never"
+sandbox_mode = "workspace-write"
+
+[tools]
+web_search = true
+
+[sandbox_workspace_write]
+network_access = true
+
+[mcp_servers.context7]
+command = "npx"
+args = ["-y", "@upstash/context7-mcp"]
+
+[mcp_servers.playwright]
+command = "npx"
+args = [
+  "-y",
+  "@playwright/mcp@latest",
+  "--headless",
+  "--browser=chromium",
+  "--no-sandbox",
+]

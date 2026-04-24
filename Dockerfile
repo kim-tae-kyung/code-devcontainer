@@ -46,11 +46,11 @@ RUN echo 'export PATH="/usr/local/go/bin:/home/node/go/bin:$PATH"' | sudo tee /e
 
 # OCI Labels
 LABEL org.opencontainers.image.source="https://github.com/kim-tae-kyung/code-devcontainer"
-LABEL org.opencontainers.image.description="Development container with Claude Code and Gemini CLI"
+LABEL org.opencontainers.image.description="Development container with Claude Code and Codex CLI"
 
 # Create workspace and config directories
 RUN sudo mkdir -p /workspace && \
-  mkdir -p /home/node/.claude /home/node/.gemini && \
+  mkdir -p /home/node/.claude /home/node/.codex && \
   sudo chown -R node:node /workspace
 
 # Install LSPs and formatters
@@ -61,12 +61,12 @@ RUN pip3 install --user --break-system-packages python-lsp-server[all] black iso
 # Copy configuration files
 COPY --chown=node:node claude-settings.json /home/node/.claude/settings.json
 COPY --chown=node:node claude-mcp.json /home/node/.claude.json
-COPY --chown=node:node gemini-settings.json /home/node/.gemini/settings.json
+COPY --chown=node:node codex-config.toml /home/node/.codex/config.toml
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
-# Install Gemini CLI
-RUN npm install -g @google/gemini-cli
+# Install Codex CLI
+RUN npm install -g @openai/codex
 
 WORKDIR /workspace

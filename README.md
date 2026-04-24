@@ -2,15 +2,15 @@
 
 This repository provides a ready-to-use development environment within a Visual Studio Code Dev Container. It is specifically designed for AI-assisted software development, bundling essential tools and CLIs for a streamlined coding experience.
 
-The environment is built upon a Node.js and TypeScript base and includes the Google Gemini CLI and Anthropic Claude CLI.
+The environment is built upon a Node.js and TypeScript base and includes the Anthropic Claude Code and OpenAI Codex CLI.
 
 ## Features
 
 - **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24`
 - **Languages**: Node.js, Python 3, Go (latest)
 - **AI Tools**:
-  - `@google/gemini-cli`
   - `@anthropic-ai/claude-code`
+  - `@openai/codex`
 - **Browser Automation**: Headless Chromium via Playwright MCP (for UI testing/debugging in containers)
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `fzf`, `vim`, `tree`, `tmux`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
@@ -47,19 +47,19 @@ After starting the container, authenticate with each CLI:
 # Claude Code (opens browser for OAuth)
 claude
 
-# Gemini CLI (opens browser for OAuth)
-gemini
+# Codex CLI (sign in with ChatGPT account or API key)
+codex
 ```
 
 ### Browser Automation (Playwright MCP)
 
-Headless Chromium is pre-installed for browser automation via the Playwright MCP server. This enables Claude Code to navigate pages, take screenshots, click elements, and read console logs — all within a headless K8s pod or container.
+Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with this MCP, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all within a headless K8s pod or container.
 
 ```bash
 # Start your dev server
 npm run dev  # e.g. Vite on localhost:5173
 
-# In Claude Code, ask:
+# In Claude Code or Codex, ask:
 # "Navigate to http://localhost:5173 and take a screenshot"
 # "Check for console errors on the page"
 # "Click the submit button and verify the result"
@@ -68,6 +68,7 @@ npm run dev  # e.g. Vite on localhost:5173
 Configuration files:
 - `claude-settings.json` → `~/.claude/settings.json` (permissions)
 - `claude-mcp.json` → `~/.claude.json` (MCP server config)
+- `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP config)
 
 ## Build & Push
 
