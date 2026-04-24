@@ -62,6 +62,8 @@ RUN pip3 install --user --break-system-packages python-lsp-server[all] black iso
 COPY --chown=node:node claude-settings.json /home/node/.claude/settings.json
 COPY --chown=node:node claude-mcp.json /home/node/.claude.json
 COPY --chown=node:node codex-config.toml /home/node/.codex/config.toml
+COPY --chown=node:node tmux.conf /home/node/.tmux.conf
+COPY --chown=node:node vimrc /home/node/.vimrc
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
