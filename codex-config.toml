@@ -1,12 +1,9 @@
 model_reasoning_effort = "xhigh"
 approval_policy = "never"
-sandbox_mode = "workspace-write"
+sandbox_mode = "danger-full-access"
 
 [tools]
 web_search = true
-
-[sandbox_workspace_write]
-network_access = true
 
 [mcp_servers.context7]
 command = "npx"
