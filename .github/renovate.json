@@ -9,8 +9,8 @@
   "gitAuthor": "Renovate Bot <1317655+tkkim92@users.noreply.github.com>",
   "packageRules": [
     {
-      "description": "Automerge minor/patch/digest updates via platform auto-merge",
-      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "description": "Automerge minor/patch/digest/pinDigest updates via platform auto-merge",
+      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
       "automerge": true
     },
     {
