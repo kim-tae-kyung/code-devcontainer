@@ -1,9 +1,11 @@
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "medium"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
-[tools]
-web_search = true
+[features]
+fast_mode = false
+memories = false
+goals = true
 
 [mcp_servers.context7]
 command = "npx"
