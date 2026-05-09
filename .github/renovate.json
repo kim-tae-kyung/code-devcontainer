@@ -22,6 +22,11 @@
       "description": "Group all GitHub Actions updates into one PR",
       "matchManagers": ["github-actions"],
       "groupName": "github actions dependencies"
+    },
+    {
+      "description": "pinDigest pins the currently-used image digest; release-age check doesn't apply",
+      "matchUpdateTypes": ["pinDigest"],
+      "minimumReleaseAge": "0 days"
     }
   ]
 }
