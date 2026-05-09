@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 # Example: NODE_NAME=master0 NAMESPACE=kube-system ./run-k8s-daemon-example.sh
 # Environment variables: POD_NAME, IMAGE, NAMESPACE, SERVICE_ACCOUNT, NODE_NAME
@@ -28,7 +29,7 @@ kubectl run "$POD_NAME" \
     -- sleep infinity
 
 echo "Waiting for pod to be ready..."
-kubectl wait --for=condition=Ready "pod/$POD_NAME" ${NS_FLAG} --timeout=120s
+kubectl wait --for=condition=Ready "pod/$POD_NAME" ${NS_FLAG} --timeout=600s
 
 if [ -d "${HOME}/.ssh" ]; then
     echo "Copying SSH keys..."
