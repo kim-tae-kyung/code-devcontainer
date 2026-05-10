@@ -4,7 +4,7 @@
   "timezone": "Asia/Seoul",
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboardOSV": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
   "prHourlyLimit": 0,
