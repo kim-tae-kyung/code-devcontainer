@@ -1,0 +1,24 @@
+name: GHCR Cleanup
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "List versions to delete without deleting"
+        type: boolean
+        default: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Cleanup GHCR - keep only :latest
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          package: ${{ github.event.repository.name }}
+          exclude-tags: latest
+          keep-n-tagged: 0
+          delete-untagged: true
+          dry-run: ${{ inputs.dry-run }}
