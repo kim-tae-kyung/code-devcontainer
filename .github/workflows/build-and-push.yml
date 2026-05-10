@@ -44,7 +44,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=sha
             type=raw,value=latest
 
       - name: Build and push
@@ -55,3 +54,12 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Cleanup GHCR - keep only :latest
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.RENOVATE_TOKEN }}
+          package: ${{ github.event.repository.name }}
+          exclude-tags: latest
+          keep-n-tagged: 0
+          delete-untagged: true
