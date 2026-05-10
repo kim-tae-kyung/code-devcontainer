@@ -3,9 +3,7 @@ name: Build and Push Container Image
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * 1" # Every Monday 12:00 KST (03:00 UTC)
-  push:
-    branches: [main]
+    - cron: "0 21 * * 0" # Every Monday 06:00 KST (21:00 UTC Sunday)
 
 concurrency:
   group: ${{ github.workflow }}
@@ -57,5 +55,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
