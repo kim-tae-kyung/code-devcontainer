@@ -4,9 +4,15 @@
   "timezone": "Asia/Seoul",
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
+  "dependencyDashboardOSV": true,
   "minimumReleaseAge": "3 days",
   "prConcurrentLimit": 5,
+  "prHourlyLimit": 0,
   "gitAuthor": "Renovate Bot <1317655+tkkim92@users.noreply.github.com>",
+  "vulnerabilityAlerts": {
+    "labels": ["security", "dependencies"],
+    "minimumReleaseAge": null
+  },
   "packageRules": [
     {
       "description": "Automerge minor/patch/digest/pinDigest updates via platform auto-merge",
