@@ -6,6 +6,7 @@
   "osvVulnerabilityAlerts": true,
   "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
   "minimumReleaseAge": "3 days",
+  "pinDigests": false,
   "ignoreTests": true,
   "prConcurrentLimit": 5,
   "prHourlyLimit": 0,
@@ -16,8 +17,8 @@
   },
   "packageRules": [
     {
-      "description": "Automerge minor/patch/digest/pinDigest updates via platform auto-merge",
-      "matchUpdateTypes": ["minor", "patch", "digest", "pinDigest"],
+      "description": "Automerge minor/patch/digest updates via platform auto-merge",
+      "matchUpdateTypes": ["minor", "patch", "digest"],
       "automerge": true
     },
     {
@@ -29,11 +30,6 @@
       "description": "Group all GitHub Actions updates into one PR",
       "matchManagers": ["github-actions"],
       "groupName": "github actions dependencies"
-    },
-    {
-      "description": "pinDigest pins the currently-used image digest; release-age check doesn't apply",
-      "matchUpdateTypes": ["pinDigest"],
-      "minimumReleaseAge": "0 days"
     }
   ]
 }
