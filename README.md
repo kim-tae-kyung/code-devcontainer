@@ -69,6 +69,8 @@ Configuration files:
 - `claude-settings.json` → `~/.claude/settings.json` (permissions)
 - `claude-mcp.json` → `~/.claude.json` (MCP server config)
 - `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP config)
+- `operating-principles.md` → `~/.claude/CLAUDE.md` (global Claude Code instructions)
+- `operating-principles.md` → `~/.codex/AGENTS.md` (global Codex CLI instructions)
 
 ## Build & Push
 

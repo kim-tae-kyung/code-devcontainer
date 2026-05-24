@@ -61,11 +61,13 @@ RUN npm install -g pyright typescript typescript-language-server
 RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort
 
 # Copy configuration files
-COPY --chown=node:node claude-settings.json ${HOME}/.claude/settings.json
-COPY --chown=node:node claude-mcp.json      ${HOME}/.claude.json
-COPY --chown=node:node codex-config.toml    ${HOME}/.codex/config.toml
-COPY --chown=node:node tmux.conf            ${HOME}/.tmux.conf
-COPY --chown=node:node vimrc                ${HOME}/.vimrc
+COPY --chown=node:node claude-settings.json   ${HOME}/.claude/settings.json
+COPY --chown=node:node claude-mcp.json        ${HOME}/.claude.json
+COPY --chown=node:node codex-config.toml      ${HOME}/.codex/config.toml
+COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
+COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
+COPY --chown=node:node tmux.conf              ${HOME}/.tmux.conf
+COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
