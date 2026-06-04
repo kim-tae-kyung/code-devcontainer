@@ -5,12 +5,11 @@
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
   "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "7 days",
   "pinDigests": false,
   "ignoreTests": true,
   "prConcurrentLimit": 5,
   "prHourlyLimit": 0,
-  "gitAuthor": "Renovate Bot <1317655+tkkim92@users.noreply.github.com>",
   "vulnerabilityAlerts": {
     "labels": ["security", "dependencies"],
     "minimumReleaseAge": null

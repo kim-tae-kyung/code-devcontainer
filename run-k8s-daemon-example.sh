@@ -34,8 +34,8 @@ kubectl wait --for=condition=Ready "pod/$POD_NAME" ${NS_FLAG} --timeout=600s
 if [ -d "${HOME}/.ssh" ]; then
     echo "Copying SSH keys..."
     kubectl cp "${HOME}/.ssh" "${POD_NAME}:/home/node/.ssh" ${NS_FLAG}
-    kubectl exec ${NS_FLAG} "$POD_NAME" -- chmod 700 /home/node/.ssh
-    kubectl exec ${NS_FLAG} "$POD_NAME" -- sh -c 'chmod 600 /home/node/.ssh/*'
+    # dir 700, private keys 600
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- sh -c 'chmod 700 /home/node/.ssh && find /home/node/.ssh -type f ! -name "*.pub" -exec chmod 600 {} +'
 fi
 
 echo "Done! Connect: kubectl exec -it $POD_NAME ${NS_FLAG} -- /bin/bash"

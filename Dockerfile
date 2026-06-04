@@ -40,6 +40,7 @@ RUN GO_VERSION_STR=$(curl -sSL "https://go.dev/VERSION?m=text" | head -n 1) && \
   GO_VERSION=${GO_VERSION_STR#go} && \
   echo "Installing Go version: ${GO_VERSION}" && \
   curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-${TARGETARCH}.tar.gz" -o /tmp/go.tar.gz && \
+  sudo rm -rf /usr/local/go && \
   sudo tar -C /usr/local -xzf /tmp/go.tar.gz && \
   rm /tmp/go.tar.gz
 
@@ -62,7 +63,6 @@ RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black i
 
 # Copy configuration files
 COPY --chown=node:node claude-settings.json   ${HOME}/.claude/settings.json
-COPY --chown=node:node claude-mcp.json        ${HOME}/.claude.json
 COPY --chown=node:node codex-config.toml      ${HOME}/.codex/config.toml
 COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
 COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
@@ -75,10 +75,15 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Install Codex CLI
 RUN npm install -g @openai/codex
 
+# Register Claude Code MCP servers at user scope (writes ~/.claude.json).
+RUN claude mcp add -s user playwright -- npx -y @playwright/mcp@latest --headless --browser=chromium --no-sandbox && \
+  claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
+
 # Smoke test
 RUN claude --version && codex --version && \
   go version && gopls version && yq --version && \
   node --version && python3 --version && \
-  black --version && pylsp --help >/dev/null
+  black --version && pylsp --help >/dev/null && \
+  typescript-language-server --version && pyright --version && isort --version
 
 WORKDIR /workspace

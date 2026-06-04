@@ -12,11 +12,13 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      packages: write
     steps:
       - name: Cleanup GHCR - keep only :latest
         uses: dataaxiom/ghcr-cleanup-action@f092b48ba3b604b2a83690dc4b2bbb3392e1045f # v1
         with:
-          token: ${{ secrets.RENOVATE_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           package: ${{ github.event.repository.name }}
           exclude-tags: latest
           keep-n-tagged: 0

@@ -1,3 +1,5 @@
+# Full autonomy: the disposable, isolated k8s pod is the security boundary.
+# https://developers.openai.com/codex/agent-approvals-security
 model_reasoning_effort = "medium"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
@@ -6,9 +8,12 @@ sandbox_mode = "danger-full-access"
 fast_mode = false
 memories = false
 
+# startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
+# https://github.com/openai/codex/issues/11851
 [mcp_servers.context7]
 command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
+startup_timeout_sec = 60
 
 [mcp_servers.playwright]
 command = "npx"
@@ -19,3 +24,4 @@ args = [
   "--browser=chromium",
   "--no-sandbox",
 ]
+startup_timeout_sec = 60

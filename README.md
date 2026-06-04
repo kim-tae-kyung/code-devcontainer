@@ -1,33 +1,23 @@
-# Coding Agent in VS Devcontainer
+# Coding Agent Sandbox
 
-This repository provides a ready-to-use development environment within a Visual Studio Code Dev Container. It is specifically designed for AI-assisted software development, bundling essential tools and CLIs for a streamlined coding experience.
-
-The environment is built upon a Node.js and TypeScript base and includes the Anthropic Claude Code and OpenAI Codex CLI.
+A container image for AI-assisted software development, bundling the Anthropic Claude Code and OpenAI Codex CLIs with the tooling an agent needs. It is built on a Node.js/TypeScript base and is run primarily as a long-lived **Kubernetes pod** (or any local Docker/Podman container).
 
 ## Features
 
-- **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24`
+- **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24` (digest-pinned)
 - **Languages**: Node.js, Python 3, Go (latest)
 - **AI Tools**:
-  - `@anthropic-ai/claude-code`
-  - `@openai/codex`
-- **Browser Automation**: Headless Chromium via Playwright MCP (for UI testing/debugging in containers)
-- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `fzf`, `vim`, `tree`, `tmux`, and common networking utilities.
+  - **Claude Code** (Anthropic) — installed via the official native installer
+  - `@openai/codex` — installed via npm
+- **MCP Servers** (pre-configured for **both** Claude Code and Codex):
+  - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers
+  - **context7** — on-demand, up-to-date library/framework documentation
+- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, `postgresql-client`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
-- **VS Code Integration**:
-  - Pre-installed extensions: ESLint, Prettier, Go, Python, Pylance, Black Formatter, YAML.
-  - Language-specific formatters for Python (Black) and Go.
-  - Settings for `formatOnSave` enabled.
 
 ## Usage
 
-### With VS Code Dev Containers
-
-1. Clone this repository.
-2. Open the repository folder in Visual Studio Code.
-3. When prompted, click "Reopen in Container" to build and launch the dev container.
-
-### With Kubernetes
+### Kubernetes (primary)
 
 Deploy as a persistent pod and connect via `kubectl exec`:
 
@@ -37,6 +27,12 @@ Deploy as a persistent pod and connect via `kubectl exec`:
 
 # Connect
 kubectl exec -it devcontainer-<timestamp> -- /bin/bash
+```
+
+### Local container (Docker/Podman)
+
+```bash
+docker run -it --rm -v "$PWD:/workspace" ghcr.io/kim-tae-kyung/code-devcontainer:latest /bin/bash
 ```
 
 ### Authentication
@@ -53,7 +49,7 @@ codex
 
 ### Browser Automation (Playwright MCP)
 
-Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with this MCP, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all within a headless K8s pod or container.
+Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with it, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.
 
 ```bash
 # Start your dev server
@@ -65,20 +61,34 @@ npm run dev  # e.g. Vite on localhost:5173
 # "Click the submit button and verify the result"
 ```
 
-Configuration files:
-- `claude-settings.json` → `~/.claude/settings.json` (permissions)
-- `claude-mcp.json` → `~/.claude.json` (MCP server config)
-- `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP config)
-- `operating-principles.md` → `~/.claude/CLAUDE.md` (global Claude Code instructions)
-- `operating-principles.md` → `~/.codex/AGENTS.md` (global Codex CLI instructions)
+## Security model
+
+The agents are configured for autonomous, unattended use, on the assumption that the container is **disposable and network-isolated** and is itself the only security boundary:
+
+- **Codex**: `approval_policy = "never"` + `sandbox_mode = "danger-full-access"` — no approval prompts, full filesystem/network access.
+- **Playwright** launches Chromium with `--no-sandbox` (required for headless Chromium running as non-root in a container).
+
+Do **not** run this image where host mounts, secrets, or trusted outbound network are reachable. In those environments, prefer Codex `approval_policy = "on-request"` + `sandbox_mode = "workspace-write"`. See OpenAI's controlled-containers guidance: <https://developers.openai.com/codex/agent-approvals-security>
+
+## Configuration
+
+Files baked into the image at build time:
+
+- `claude-settings.json` → `~/.claude/settings.json` (Claude Code permissions/behavior)
+- `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP servers)
+- `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
+- `tmux.conf` → `~/.tmux.conf`
+- `vimrc` → `~/.vimrc`
+
+Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`.
 
 ## Build & Push
 
 ### Via GitHub Actions
 
-Container images are built and pushed via GitHub Actions.
+Container images are built and pushed via GitHub Actions, also on a weekly schedule to pick up the latest base image and tools.
 
-1. Go to **Actions** tab in the repository
+1. Go to the **Actions** tab in the repository
 2. Select **Build and Push Container Image** workflow
 3. Click **Run workflow**
 
@@ -95,11 +105,3 @@ podman build --no-cache --force-rm \
 # Push to registry
 podman manifest push --rm ghcr.io/kim-tae-kyung/code-devcontainer:latest
 ```
-
-## Configuration
-
-- **`devcontainer.json`**: Dev container setup configuration.
-- **Forwarded Ports**:
-  - `8080`: Golang Backend Server
-  - `5173`: Vite Dev Server
-- **Workspace**: Project folder is mounted at `/workspace`.
