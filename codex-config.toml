@@ -4,6 +4,11 @@ model_reasoning_effort = "medium"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
+# Match Claude Code fullscreen (alt-screen buffer) inside tmux.
+# https://developers.openai.com/codex/config-reference
+[tui]
+alternate_screen = "always"
+
 [features]
 fast_mode = false
 memories = false
