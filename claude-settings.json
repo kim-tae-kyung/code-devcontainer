@@ -20,7 +20,6 @@
     "defaultMode": "auto"
   },
   "effortLevel": "xhigh",
-  "tui": "fullscreen",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
   "skipAutoPermissionPrompt": true

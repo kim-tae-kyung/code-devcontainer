@@ -4,14 +4,10 @@ model_reasoning_effort = "medium"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 
-# Match Claude Code fullscreen (alt-screen buffer) inside tmux.
-# https://developers.openai.com/codex/config-reference
-[tui]
-alternate_screen = "always"
-
 [features]
 fast_mode = false
 memories = false
+code_mode = true
 
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
 # https://github.com/openai/codex/issues/11851
