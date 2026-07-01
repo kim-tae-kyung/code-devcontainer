@@ -1,4 +1,4 @@
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/devcontainers/typescript-node:24@sha256:0cbad76d1987fd35fd78cbc58cbe8c2aa93a8daa45411e52c6c6b63ea2dae202
+FROM --platform=$TARGETPLATFORM mcr.microsoft.com/devcontainers/typescript-node:24@sha256:627da5f4ab0dfa32c23cd93a10925c20bf92e5f2814cec74cde8520fb33e3ec4
 
 ARG TARGETPLATFORM
 ARG TARGETARCH
