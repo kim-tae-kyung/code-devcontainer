@@ -22,13 +22,8 @@ persistence = "none"
 
 # tmux: alt-screen bypasses tmux history-limit, so render on the main screen.
 # https://github.com/openai/codex/pull/8555
-# bel (not osc9): survives kubectl exec/ssh without OSC passthrough; tmux
-# monitor-bell flags the window on task completion.
 [tui]
 alternate_screen = "never"
-notifications = true
-notification_method = "bel"
-notification_condition = "unfocused"
 
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
 # https://github.com/openai/codex/issues/11851
