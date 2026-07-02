@@ -82,6 +82,10 @@ Files baked into the image at build time:
 
 Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`.
 
+### Terminal (tmux) integration
+
+Both CLIs render on the terminal's main screen — no alternate screen — so their output stays in tmux scrollback (`history-limit 100000`): Claude Code via `"tui": "default"`, Codex via `[tui] alternate_screen = "never"` (alt-screen bypasses tmux history; see [openai/codex#8555](https://github.com/openai/codex/pull/8555)). When a turn finishes or input is needed, each CLI rings the terminal bell — Codex via `[tui] notifications` ([config reference](https://developers.openai.com/codex/config-reference)), Claude Code via `Stop`/`Notification` [hooks](https://code.claude.com/docs/en/hooks) — and tmux flags the window (`monitor-bell`), so agent turns running in other windows are visible at a glance.
+
 ## Build & Push
 
 ### Via GitHub Actions

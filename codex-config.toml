@@ -1,13 +1,34 @@
 # Full autonomy: the disposable, isolated k8s pod is the security boundary.
 # https://developers.openai.com/codex/agent-approvals-security
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
+web_search = "live"
 
 [features]
 fast_mode = false
 memories = false
 code_mode = true
+
+# Stateless sessions: features.memories only stops memory *generation*;
+# use_memories (default true) stops *injecting* existing memories, and
+# history.persistence stops transcript recording (history.jsonl).
+# https://developers.openai.com/codex/config-reference
+[memories]
+use_memories = false
+
+[history]
+persistence = "none"
+
+# tmux: alt-screen bypasses tmux history-limit, so render on the main screen.
+# https://github.com/openai/codex/pull/8555
+# bel (not osc9): survives kubectl exec/ssh without OSC passthrough; tmux
+# monitor-bell flags the window on task completion.
+[tui]
+alternate_screen = "never"
+notifications = true
+notification_method = "bel"
+notification_condition = "unfocused"
 
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
 # https://github.com/openai/codex/issues/11851
