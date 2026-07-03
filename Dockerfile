@@ -30,7 +30,6 @@ RUN sudo apt-get update && \
     git gh jq ripgrep curl \
     iproute2 dnsutils iputils-ping net-tools \
     vim tree tmux \
-    postgresql-client \
     python3 python3-pip python3-venv && \
   sudo apt-get clean && \
   sudo rm -rf /var/lib/apt/lists/*
@@ -43,6 +42,18 @@ RUN GO_VERSION_STR=$(curl -sSL "https://go.dev/VERSION?m=text" | head -n 1) && \
   sudo rm -rf /usr/local/go && \
   sudo tar -C /usr/local -xzf /tmp/go.tar.gz && \
   rm /tmp/go.tar.gz
+
+# Install agg (asciinema gif generator; renders .cast recordings to GIF).
+# aarch64 ships only a gnu build, amd64 a static musl build — both run on the glibc base.
+ARG AGG_VERSION=v1.9.0
+RUN case "${TARGETARCH}" in \
+      amd64) AGG_TARGET=x86_64-unknown-linux-musl ;; \
+      arm64) AGG_TARGET=aarch64-unknown-linux-gnu ;; \
+      *) echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+  curl -fsSL "https://github.com/asciinema/agg/releases/download/${AGG_VERSION}/agg-${AGG_TARGET}" -o /tmp/agg && \
+  sudo install -m 0755 /tmp/agg /usr/local/bin/agg && \
+  rm /tmp/agg
 
 # Install Chromium for headless browser testing via Playwright MCP
 RUN npx playwright install --with-deps chromium && \
@@ -59,7 +70,7 @@ RUN sudo install -d -o node -g node /workspace
 RUN go install golang.org/x/tools/gopls@latest
 RUN go install github.com/mikefarah/yq/v4@latest
 RUN npm install -g pyright typescript typescript-language-server
-RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort
+RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort asciinema
 
 # Copy configuration files
 COPY --chown=node:node claude-settings.json   ${HOME}/.claude/settings.json
@@ -68,6 +79,10 @@ COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
 COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
 COPY --chown=node:node tmux.conf              ${HOME}/.tmux.conf
 COPY --chown=node:node vimrc                  ${HOME}/.vimrc
+
+# Ship agent skills; vendor the capture-demo skill's sharp dependency (PNG frames -> GIF)
+COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
+RUN cd ${HOME}/.claude/skills/capture-demo && npm install --omit=dev
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
@@ -84,6 +99,7 @@ RUN claude --version && codex --version && \
   go version && gopls version && yq --version && \
   node --version && python3 --version && \
   black --version && pylsp --help >/dev/null && \
-  typescript-language-server --version && pyright --version && isort --version
+  typescript-language-server --version && pyright --version && isort --version && \
+  asciinema --version && agg --version
 
 WORKDIR /workspace

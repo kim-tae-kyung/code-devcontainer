@@ -1,0 +1,9 @@
+{
+  "name": "capture-demo-skill",
+  "private": true,
+  "type": "module",
+  "description": "Vendored deps for the capture-demo skill (PNG frames -> animated GIF).",
+  "dependencies": {
+    "sharp": "0.35.3"
+  }
+}

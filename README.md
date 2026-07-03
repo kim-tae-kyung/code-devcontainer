@@ -12,8 +12,9 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **MCP Servers** (pre-configured for **both** Claude Code and Codex):
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers
   - **context7** — on-demand, up-to-date library/framework documentation
-- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, `postgresql-client`, and common networking utilities.
+- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
+- **Demo capture** (→ GIF): `asciinema` + `agg` (terminal/tmux) and `sharp` (browser screenshots), wired up by the `capture-demo` skill.
 
 ## Usage
 
@@ -61,6 +62,21 @@ npm run dev  # e.g. Vite on localhost:5173
 # "Click the submit button and verify the result"
 ```
 
+### Capturing demos (GIF)
+
+The `capture-demo` skill turns work into an **animated GIF** to attach to docs, PRs, or issues. GIF is used deliberately: it is the only animated format GitHub renders inline (animated WebP is not; MP4/WebM need video attachments).
+
+```bash
+# Terminal / tmux session -> GIF (asciinema + agg)
+~/.claude/skills/capture-demo/terminal_capture.sh -o demo.gif -c "npm test; sleep 1"
+
+# Browser flow -> GIF: drive the Playwright MCP, save screenshots as frames/001.png,
+# frames/002.png, ... then assemble (sharp, no ffmpeg):
+node ~/.claude/skills/capture-demo/frames_to_gif.mjs frames/ --out demo.gif --delay 900 --width 1000
+```
+
+Ask the agent in natural language ("record these steps as a GIF for the issue") and it will invoke the skill.
+
 ## Security model
 
 The agents are configured for autonomous, unattended use, on the assumption that the container is **disposable and network-isolated** and is itself the only security boundary:
@@ -79,6 +95,7 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `tmux.conf` → `~/.tmux.conf`
 - `vimrc` → `~/.vimrc`
+- `.claude/skills/` → `~/.claude/skills/` (agent skills, e.g. `capture-demo`)
 
 Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`.
 
