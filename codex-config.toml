@@ -8,7 +8,9 @@ web_search = "live"
 [features]
 fast_mode = false
 memories = false
-code_mode = true
+
+[features.code_mode]
+enabled = true
 
 # Stateless sessions: features.memories only stops memory *generation*;
 # use_memories (default true) stops *injecting* existing memories, and
@@ -19,6 +21,10 @@ use_memories = false
 
 [history]
 persistence = "none"
+
+# Explicit telemetry opt-out (unset falls back to the client default).
+[analytics]
+enabled = false
 
 # tmux: alt-screen bypasses tmux history-limit, so render on the main screen.
 # https://github.com/openai/codex/pull/8555
@@ -32,6 +38,7 @@ command = "npx"
 args = ["-y", "@upstash/context7-mcp"]
 startup_timeout_sec = 60
 
+# tool_timeout_sec: browser navigation/screenshots routinely exceed the 60s default.
 [mcp_servers.playwright]
 command = "npx"
 args = [
@@ -42,3 +49,4 @@ args = [
   "--no-sandbox",
 ]
 startup_timeout_sec = 60
+tool_timeout_sec = 120
