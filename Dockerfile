@@ -27,7 +27,7 @@ USER node
 # Install system packages
 RUN sudo apt-get update && \
   sudo apt-get -y install --no-install-recommends \
-    git gh jq ripgrep curl \
+    git gh jq ripgrep curl tini \
     iproute2 dnsutils iputils-ping net-tools \
     vim tree tmux \
     python3 python3-pip python3-venv && \
@@ -103,3 +103,6 @@ RUN claude --version && codex --version && \
   asciinema --version && agg --version
 
 WORKDIR /workspace
+
+# PID 1 must reap zombies; -s keeps reaping as subreaper when pause is PID 1 (shareProcessNamespace)
+ENTRYPOINT ["/usr/bin/tini", "-s", "--"]

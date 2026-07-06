@@ -12,7 +12,7 @@ echo "Creating pod $POD_NAME..."
 OVERRIDES=$(jq -n \
     --arg sa "$SERVICE_ACCOUNT" \
     --arg node "$NODE_NAME" \
-    '{spec: {tolerations: [
+    '{spec: {shareProcessNamespace: true, tolerations: [
         {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"},
         {key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}
     ]}}
