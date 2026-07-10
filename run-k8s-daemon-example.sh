@@ -38,4 +38,19 @@ if [ -d "${HOME}/.ssh" ]; then
     kubectl exec ${NS_FLAG} "$POD_NAME" -- sh -c 'chmod 700 /home/node/.ssh && find /home/node/.ssh -type f ! -name "*.pub" -exec chmod 600 {} +'
 fi
 
+# Linux only: macOS stores Claude credentials in Keychain, not this file
+if [ -f "${HOME}/.claude/.credentials.json" ]; then
+    echo "Copying Claude credentials..."
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- mkdir -p /home/node/.claude
+    kubectl cp "${HOME}/.claude/.credentials.json" "${POD_NAME}:/home/node/.claude/.credentials.json" ${NS_FLAG}
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- chmod 600 /home/node/.claude/.credentials.json
+fi
+
+if [ -f "${HOME}/.codex/auth.json" ]; then
+    echo "Copying Codex credentials..."
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- mkdir -p /home/node/.codex
+    kubectl cp "${HOME}/.codex/auth.json" "${POD_NAME}:/home/node/.codex/auth.json" ${NS_FLAG}
+    kubectl exec ${NS_FLAG} "$POD_NAME" -- chmod 600 /home/node/.codex/auth.json
+fi
+
 echo "Done! Connect: kubectl exec -it $POD_NAME ${NS_FLAG} -- /bin/bash"
