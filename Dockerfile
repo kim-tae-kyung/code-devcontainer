@@ -29,7 +29,7 @@ RUN sudo apt-get update && \
   sudo apt-get -y install --no-install-recommends \
     git gh jq ripgrep curl tini \
     iproute2 dnsutils iputils-ping net-tools \
-    vim tree tmux \
+    vim tree tmux ncurses-bin \
     python3 python3-pip python3-venv && \
   sudo apt-get clean && \
   sudo rm -rf /var/lib/apt/lists/*
@@ -98,6 +98,8 @@ RUN claude mcp add -s user playwright -- npx -y @playwright/mcp@latest --headles
 RUN claude --version && codex --version && \
   go version && gopls version && yq --version && \
   node --version && python3 --version && \
+  tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
+  infocmp -x tmux-256color >/dev/null && \
   black --version && pylsp --help >/dev/null && \
   typescript-language-server --version && pyright --version && isort --version && \
   asciinema --version && agg --version

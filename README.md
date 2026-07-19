@@ -101,7 +101,21 @@ Claude Code's MCP servers (Playwright, context7) are registered at user scope du
 
 ### Terminal (tmux) integration
 
-Both CLIs render on the terminal's main screen — no alternate screen — so their output stays in tmux scrollback (`history-limit 100000`): Claude Code via `"tui": "default"`, Codex via `[tui] alternate_screen = "never"` (alt-screen bypasses tmux history; see [openai/codex#8555](https://github.com/openai/codex/pull/8555)).
+The image provides tmux 3.5+ with extended keys, CSI u, escape-sequence passthrough, true color, and OSC 52 clipboard forwarding. These settings preserve Shift+Enter and agent notifications through VS Code's integrated terminal.
+
+Both CLIs render on the terminal's main screen — no alternate screen — so their output stays in tmux scrollback (`history-limit 100000`): Claude Code via `"tui": "default"`, Codex via `[tui] alternate_screen = "never"` (alt-screen bypasses tmux history; see [openai/codex#8555](https://github.com/openai/codex/pull/8555)). Claude Code and Codex use the VS Code terminal bell because the integrated terminal does not surface their OSC 9 desktop notifications.
+
+Before starting tmux, run Claude Code's `/terminal-setup` once in the VS Code integrated terminal. On macOS, keep these values in local VS Code User settings if the attached container cannot update them:
+
+```json
+{
+  "terminal.integrated.macOptionIsMeta": true,
+  "terminal.integrated.enableBell": true,
+  "terminal.integrated.gpuAcceleration": "off"
+}
+```
+
+VS Code does not support attached-container configuration files for Kubernetes containers, so these terminal dependencies and dotfiles are baked into the image instead.
 
 ## Build & Push
 

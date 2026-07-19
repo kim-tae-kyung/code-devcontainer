@@ -22,6 +22,7 @@
     "defaultMode": "auto"
   },
   "effortLevel": "xhigh",
+  "preferredNotifChannel": "terminal_bell",
   "tui": "default",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,
