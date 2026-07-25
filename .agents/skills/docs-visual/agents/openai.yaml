@@ -1,4 +1,4 @@
 interface:
   display_name: "Docs Visual"
-  short_description: "Research-backed technical docs with verified visuals"
-  default_prompt: "Use $docs-visual to research primary sources, create or revise technical documentation, and add verified diagrams when useful."
+  short_description: "Evidence-backed docs with imagegen-first visuals"
+  default_prompt: "Use $docs-visual to research primary sources, create or revise technical documentation, prefer imagegen visuals, and validate any necessary Mermaid diagrams."

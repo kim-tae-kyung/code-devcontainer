@@ -4,7 +4,7 @@
 
 - Validation layers
 - Link and source checks
-- Diagram and image checks
+- Fixed Mermaid and image checks
 - Consistency checks
 - Final report
 
@@ -16,7 +16,7 @@ Run checks in increasing scope:
 2. Markdown style;
 3. local links and anchors;
 4. image references and scoped orphans;
-5. Mermaid parsing and rendering;
+5. scoped Mermaid fixed-version rendering when Mermaid is present;
 6. image decoding and visual inspection;
 7. pinned external source verification;
 8. cross-document semantic consistency;
@@ -58,16 +58,21 @@ For live official sites:
 - distinguish `403`/`429`/bot protection from `404`;
 - do not report a blocked checker as proof of a broken link.
 
-## Diagram and image checks
+## Fixed Mermaid and image checks
 
 For Mermaid:
 
-- extract every block;
-- run a parser;
-- render each block to SVG or PNG;
-- use an independent renderer if the local environment fails for a non-syntax
-  reason;
-- report parser failures separately from renderer/environment failures.
+- read [mermaid-validation.md](mermaid-validation.md);
+- render added or changed blocks by default;
+- render every block only for a new set, full audit, shared Mermaid
+  configuration change, release gate, or explicit user request;
+- use the bundled fixed `@mermaid-js/mermaid-cli@11.16.0` runner with one job;
+- treat a successful fixed-version render as the syntax/parser check;
+- inspect the generated contact sheet, then suspicious originals at full
+  detail;
+- supply an existing browser portably instead of using architecture-specific
+  installation or ad hoc renderer experiments;
+- report syntax failures separately from browser/environment failures.
 
 For raster assets:
 
@@ -132,7 +137,7 @@ For every visual, report:
 - purpose;
 - major corrections;
 - final prompt or prompt-set identifier;
-- imagegen built-in or fallback mode.
+- imagegen generation mode.
 
 ### Validation
 
@@ -141,7 +146,7 @@ Report commands or check categories and exact results:
 - files scanned;
 - local link/anchor errors;
 - external source links checked;
-- Mermaid pass count;
+- Mermaid selected scope, CLI version, browser mode, and pass count;
 - image reference/orphan count;
 - image visual review;
 - linter/test status.

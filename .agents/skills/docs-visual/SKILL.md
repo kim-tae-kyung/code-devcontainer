@@ -1,6 +1,6 @@
 ---
 name: docs-visual
-description: Research, create, rewrite, or deeply audit technical documentation from authoritative official docs, GitHub repositories, source code, schemas, tests, and runtime configuration, then add verified Mermaid diagrams or imagegen infographics when they materially improve understanding. Use for new documentation sets, major revisions of existing docs, architecture and API references, lifecycle or packet-flow explanations, code-to-doc audits, and any task where claims and visuals must be traced to primary evidence rather than inferred from existing prose.
+description: Research, create, rewrite, or deeply audit technical documentation from authoritative official docs, GitHub repositories, source code, schemas, tests, and runtime configuration, then add verified imagegen-first visuals or maintainable Mermaid diagrams when they materially improve understanding. Use for new documentation sets, major revisions of existing docs, architecture and API references, lifecycle or packet-flow explanations, code-to-doc audits, and any task where claims and visuals must be traced to primary evidence rather than inferred from existing prose.
 ---
 
 # Docs Visual
@@ -115,21 +115,28 @@ creating or changing visuals.
    dependency, state, comparison, or a path with several actors.
    Producing no visual is valid when none improves understanding; report that
    decision.
-4. Prefer Mermaid for deterministic boxes, arrows, and state transitions.
-5. Use the `imagegen` skill for dense raster infographics or edits to raster
-   assets. Read its `SKILL.md` fully and follow its built-in generation/editing
-   workflow.
-6. Never generate before the underlying claims and arrow directions are
+4. Prefer imagegen for new or regenerated reader-facing visuals, including
+   conceptual boxes-and-arrows diagrams. When imagegen and Mermaid would both
+   communicate the verified model adequately, choose imagegen.
+5. Use Mermaid only when exact diffable text, frequent maintenance, executable
+   state/sequence semantics, repository policy, or an explicit user request
+   makes repo-native source materially more valuable.
+6. Do not create Mermaid and raster versions of the same visual merely for
+   redundancy. Retain a correct existing Mermaid diagram unless changing its
+   medium has clear reader value.
+7. Before image generation or raster editing, read the `imagegen` skill's
+   `SKILL.md` fully and follow its built-in workflow.
+8. Never generate before the underlying claims and arrow directions are
    verified.
-7. Do not force an aspect ratio. Choose width, height, and orientation for
+9. Do not force an aspect ratio. Choose width, height, and orientation for
    content legibility.
-8. Use one generation call per distinct asset. Inspect every output, then make
+10. Use one generation call per distinct asset. Inspect every output, then make
    one precise edit at a time.
-9. Copy only final selected assets into the workspace and update consumers.
-10. Keep the final prompt set and generation mode for the handoff report.
+11. Copy only final selected assets into the workspace and update consumers.
+12. Keep the final prompt set and generation mode for the handoff report.
 
-Do not use raster generation when a simple maintainable Mermaid or native
-vector edit is more accurate.
+Do not choose Mermaid solely because a visual contains boxes and arrows.
+Choose it for the maintainability or exactness conditions above.
 
 ## Validate the integrated result
 
@@ -142,7 +149,11 @@ At minimum:
 1. Run repository-specific tests and, in a Git worktree, `git diff --check`.
 2. Validate Markdown style in the repository's accepted configuration.
 3. Check local links, anchors, image references, and scoped orphan assets.
-4. Parse and render every Mermaid block.
+4. If the selected scope contains Mermaid, read
+   [references/mermaid-validation.md](references/mermaid-validation.md) and use
+   its fixed-version runner. Render changed or added blocks by default; render
+   the complete set only for a full audit, new documentation set, shared
+   Mermaid configuration change, release gate, or explicit user request.
 5. Verify external source paths and line anchors against the pinned source;
    distinguish network blocking from real broken links.
 6. Decode and visually inspect every final image for text, cropping,
@@ -150,7 +161,7 @@ At minimum:
 7. Search for stale versions, inconsistent API paths, roles, field names,
    statuses, readiness conditions, and out-of-scope concepts.
 8. Compare forward provisioning dependencies with reverse teardown order.
-9. Confirm prose, Mermaid, and raster visuals describe the same behavior.
+9. Confirm prose and every visual form present describe the same behavior.
 
 Run the bundled basic checker when applicable:
 
@@ -167,7 +178,8 @@ asset root; otherwise scan the broader owning documentation tree or omit that
 flag.
 
 Do not declare success from a partial parser. If a local renderer fails because
-of its environment, use an independent renderer and report the distinction.
+of its environment, report the environment failure separately instead of
+exploring ad hoc installations or renderer versions.
 
 ## Finish the work
 

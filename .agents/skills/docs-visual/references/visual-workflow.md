@@ -35,11 +35,16 @@ Prefer prose or a table for:
 Choose the smallest maintainable form:
 
 - table for mappings and comparisons;
-- Mermaid sequence for calls and acknowledgements;
-- Mermaid state diagram for exact enums;
-- Mermaid flowchart for deterministic dependencies;
-- raster infographic for dense conceptual synthesis, multiple lanes, physical
-  boundaries, or an onboarding overview.
+- imagegen infographic for reader-facing architecture, onboarding, conceptual
+  synthesis, actor lanes, physical boundaries, annotated flows, or polished
+  comparisons;
+- Mermaid for exact and frequently maintained calls, acknowledgements, enums,
+  state transitions, or deterministic dependencies whose diffable source is
+  materially valuable.
+
+When imagegen and Mermaid both communicate the verified model adequately,
+prefer imagegen. Boxes and arrows alone are not a reason to choose Mermaid.
+Do not create both forms for the same idea merely as a validation aid.
 
 ## Existing visual audit
 
@@ -102,7 +107,8 @@ full `SKILL.md` when raster work begins.
 
 Follow these rules:
 
-1. Use built-in image generation by default.
+1. Use built-in image generation by default for new or regenerated
+   reader-facing visuals.
 2. Generate one distinct asset per call.
 3. For a local edit target, inspect it with `view_image` first.
 4. Distinguish edit targets from style references.
@@ -112,10 +118,11 @@ Follow these rules:
 7. Do not overwrite an existing asset unless replacement is authorized.
 8. Inspect the generated image at original detail.
 9. Iterate with one concrete change at a time and repeat invariants.
-10. Report final paths, prompt set, and built-in or fallback mode.
+10. Report final paths, prompt set, and generation mode.
 
-Do not substitute raster output for an editable repo-native diagram when
-Mermaid, SVG, HTML/CSS, or another native format is clearly better.
+Use Mermaid, SVG, HTML/CSS, or another native format instead when repository
+policy requires it or when exact diffable text and frequent maintenance
+materially outweigh the reader-facing value of imagegen.
 
 ## Prompt structure
 
@@ -167,7 +174,7 @@ Check every output for:
 - status and field names;
 - unsupported fixed values;
 - icon semantics;
-- agreement with prose and Mermaid;
+- agreement with prose and any other visual form present;
 - contrast and readability at normal documentation width.
 
 When an error appears:
@@ -187,7 +194,8 @@ Do not keep an image merely because generation was expensive.
 - Add meaningful alt text describing the concept, not “diagram”.
 - Place the image where the reader first needs the mental model.
 - Keep exact detail in prose/tables and use the image for relationships.
-- Retain Mermaid when it provides a maintainable exact counterpart.
+- Retain correct existing Mermaid when it remains useful; do not add a parallel
+  Mermaid counterpart to every imagegen asset.
 - Verify every reference and scoped orphan after renames or deletions.
 - Record final dimensions as an observation, not a conformance target, unless
   the user specified a target.
