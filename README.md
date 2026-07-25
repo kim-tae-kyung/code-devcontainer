@@ -15,6 +15,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
 - **Demo capture** (→ GIF): `asciinema` + `agg` (terminal/tmux) and `sharp` (browser screenshots), wired up by the `capture-demo` skill.
+- **Documentation workflow**: the `docs-visual` skill is installed globally for Codex to research, write, audit, visualize, and validate technical documentation.
 
 ## Usage
 
@@ -77,6 +78,12 @@ node ~/.claude/skills/capture-demo/frames_to_gif.mjs frames/ --out demo.gif --de
 
 Ask the agent in natural language ("record these steps as a GIF for the issue") and it will invoke the skill.
 
+### Technical documentation
+
+Codex automatically discovers `docs-visual` from `~/.agents/skills/docs-visual`.
+Ask for a documentation audit or rewrite to let Codex select it implicitly, or
+invoke it explicitly with `$docs-visual`.
+
 ## Security model
 
 The agents are configured for autonomous, unattended use, on the assumption that the container is **disposable and network-isolated** and is itself the only security boundary:
@@ -96,6 +103,7 @@ Files baked into the image at build time:
 - `tmux.conf` → `~/.tmux.conf`
 - `vimrc` → `~/.vimrc`
 - `.claude/skills/` → `~/.claude/skills/` (agent skills, e.g. `capture-demo`)
+- `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `docs-visual`)
 
 Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`.
 

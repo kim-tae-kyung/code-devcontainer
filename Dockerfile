@@ -80,8 +80,11 @@ COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
 COPY --chown=node:node tmux.conf              ${HOME}/.tmux.conf
 COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 
-# Ship agent skills; vendor the capture-demo skill's sharp dependency (PNG frames -> GIF)
+# Ship agent skills to each CLI's user-level discovery directory.
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
+COPY --chown=node:node .agents/skills/ ${HOME}/.agents/skills/
+
+# Vendor the capture-demo skill's sharp dependency (PNG frames -> GIF).
 RUN cd ${HOME}/.claude/skills/capture-demo && npm install --omit=dev
 
 # Install Claude Code
@@ -95,7 +98,8 @@ RUN claude mcp add -s user playwright -- npx -y @playwright/mcp@latest --headles
   claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
 
 # Smoke test
-RUN claude --version && codex --version && \
+RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
+  claude --version && codex --version && \
   go version && gopls version && yq --version && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
