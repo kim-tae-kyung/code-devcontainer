@@ -1,6 +1,8 @@
 # Full autonomy: the disposable, isolated k8s pod is the security boundary.
 # https://developers.openai.com/codex/agent-approvals-security
-model_reasoning_effort = "high"
+# Extra High suits difficult work with multiple steps, sources, or tradeoffs.
+# https://learn.chatgpt.com/docs/models
+model_reasoning_effort = "xhigh"
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 web_search = "live"
@@ -8,9 +10,6 @@ web_search = "live"
 [features]
 fast_mode = false
 memories = false
-
-[features.code_mode]
-enabled = true
 
 # Stateless sessions: features.memories only stops memory *generation*;
 # use_memories (default true) stops *injecting* existing memories, and

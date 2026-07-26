@@ -105,7 +105,41 @@ Files baked into the image at build time:
 - `.claude/skills/` → `~/.claude/skills/` (agent skills, e.g. `capture-demo`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `docs-visual`)
 
-Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`.
+Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
+
+### Model & effort (Codex)
+
+No model is pinned. Codex selects an available model for the task, while `model_reasoning_effort = "xhigh"` makes difficult, multi-step work the default priority. Choose a model or reasoning level for one task with `/model` or `/reasoning` ([Codex developer commands](https://learn.chatgpt.com/docs/developer-commands)).
+
+GPT‑5.6 provides three Codex model tiers ([Codex model guidance](https://learn.chatgpt.com/docs/models)):
+
+- **Sol** (`gpt-5.6`) — complex, open-ended, or high-value work that needs analysis, judgment, and polish.
+- **Terra** (`gpt-5.6-terra`) — everyday work that benefits from strong reasoning and tool use without Sol's full depth.
+- **Luna** (`gpt-5.6-luna`) — clear, repeatable, or high-volume work with explicit success criteria.
+
+Use **Max** only when a single task needs more reasoning than `xhigh`. Use **Ultra** only when a complex task divides into meaningful parallel work, because Ultra adds subagents rather than only increasing single-agent reasoning ([Max and Ultra](https://learn.chatgpt.com/docs/models#know-when-to-use-max-or-ultra)).
+
+Fast mode is off by default; enable it per session only when lower latency justifies higher credit consumption ([Codex Fast mode](https://learn.chatgpt.com/docs/agent-configuration/speed#fast-mode)). Memories and transcript persistence are off because the pod is disposable; persistent instructions belong in `operating-principles.md`.
+
+Codex CLI is installed unpinned from npm. GPT‑5.6 requires Codex CLI 0.144.0 or newer ([GPT‑5.6 availability](https://help.openai.com/en/articles/20001354-gpt-56-in-chatgpt)), and the image build rejects configuration keys unsupported by the installed CLI.
+
+### Model & effort (Claude Code)
+
+No model is pinned, so the account default applies. Choose per task with `/model` ([alias table](https://code.claude.com/docs/en/model-config#model-aliases): `fable`, `opus`, `sonnet`, `haiku`, `best`):
+
+- **Sonnet 5** (`sonnet`) — routine edits and well-scoped tasks.
+- **Opus 5** (`opus`) — ambiguity, unfamiliar domains, subtle bugs.
+- **Fable 5** (`fable`) — the multi-day unattended sessions this pod exists for. Describe the outcome, not the steps; skip verification reminders.
+
+See [Choosing a Claude model and effort level](https://claude.com/blog/claude-model-and-effort-level-in-claude-code): a wrong answer despite full context means pick a larger model; a skipped file or abandoned refactor means raise effort.
+
+Effort is set to `xhigh` twice, in `effortLevel` and in `env.CLAUDE_CODE_EFFORT_LEVEL`.
+
+> **Known Issue** — the second one is load-bearing. On first run of Fable 5, Opus 4.8, or Opus 4.7, Claude Code applies *that model's* default effort (`high`) over the saved `effortLevel` and holds it across sessions until an explicit `/effort` or `--effort` ([Adjust effort level](https://code.claude.com/docs/en/model-config#adjust-effort-level)). In an unattended pod nobody is there to type it, so the environment variable — which overrides per session — is what keeps `xhigh` in force. Opus 5 has no such hold.
+
+Auto memory is off (`autoMemoryEnabled: false`), matching Codex's `memories = false`. It is machine-local under `~/.claude/projects/<project>/memory/`, does not outlive the pod, and `cleanupPeriodDays: 3` sweeps that tree ([auto memory](https://code.claude.com/docs/en/memory#auto-memory)). Persistent instructions belong in `operating-principles.md`.
+
+Claude Code is installed unpinned from the official installer, which satisfies the version floors: Fable 5 needs v2.1.170+, Sonnet 5 v2.1.197+, Opus 5 v2.1.219+.
 
 ### Terminal (tmux) integration
 

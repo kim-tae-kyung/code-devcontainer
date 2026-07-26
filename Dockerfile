@@ -99,7 +99,7 @@ RUN claude mcp add -s user playwright -- npx -y @playwright/mcp@latest --headles
 
 # Smoke test
 RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
-  claude --version && codex --version && \
+  claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
   go version && gopls version && yq --version && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \

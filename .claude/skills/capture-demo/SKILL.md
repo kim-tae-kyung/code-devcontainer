@@ -5,7 +5,6 @@ description: >-
   render it to an animated GIF for docs or GitHub issues. Use when the user wants
   a screen recording, demo GIF, screenshot animation, or visual reference to
   attach to a README, PR, or issue.
-model: sonnet
 ---
 
 # capture-demo
