@@ -28,13 +28,12 @@ persistence = "none"
 [analytics]
 enabled = false
 
-# VS Code does not surface Codex OSC 9 desktop notifications; use its terminal bell.
+# Use Codex's built-in TUI notifications. Its default `auto` method prefers
+# OSC 9 and falls back to BEL; tmux passthrough forwards either to the client.
 # tmux alt-screen bypasses history-limit, so render on the main screen.
 # https://github.com/openai/codex/pull/8555
 [tui]
 notifications = ["agent-turn-complete", "approval-requested"]
-notification_method = "bel"
-notification_condition = "unfocused"
 alternate_screen = "never"
 
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.

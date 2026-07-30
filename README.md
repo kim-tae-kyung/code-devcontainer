@@ -143,21 +143,15 @@ Claude Code is installed unpinned from the official installer, which satisfies t
 
 ### Terminal (tmux) integration
 
-The image provides tmux 3.5+ with extended keys, CSI u, escape-sequence passthrough, true color, and OSC 52 clipboard forwarding. These settings preserve Shift+Enter and agent notifications through VS Code's integrated terminal.
+The image provides tmux 3.5+ with extended keys, CSI u, escape-sequence passthrough, true color, and OSC 52 clipboard forwarding. These settings preserve Shift+Enter and built-in agent notifications through the normal `Ghostty → kubectl exec -it → pod tmux → CLI` path.
 
-Both CLIs render on the terminal's main screen — no alternate screen — so their output stays in tmux scrollback (`history-limit 100000`): Claude Code via `"tui": "default"`, Codex via `[tui] alternate_screen = "never"` (alt-screen bypasses tmux history; see [openai/codex#8555](https://github.com/openai/codex/pull/8555)). Claude Code and Codex use the VS Code terminal bell because the integrated terminal does not surface their OSC 9 desktop notifications.
+Both CLIs render on the terminal's main screen — no alternate screen — so their output stays in tmux scrollback (`history-limit 100000`): Claude Code via `"tui": "default"`, Codex via `[tui] alternate_screen = "never"` (alt-screen bypasses tmux history; see [openai/codex#8555](https://github.com/openai/codex/pull/8555)).
 
-Before starting tmux, run Claude Code's `/terminal-setup` once in the VS Code integrated terminal. On macOS, keep these values in local VS Code User settings if the attached container cannot update them:
+Claude Code uses its native desktop-notification channel. Codex uses its built-in TUI notifications with the default `auto` method, which prefers OSC 9 and falls back to BEL. The pod's `tmux.conf` enables passthrough so those escape sequences return over the interactive Kubernetes TTY to the local terminal. Ghostty must have macOS notification permission and `desktop-notifications = true`.
 
-```json
-{
-  "terminal.integrated.macOptionIsMeta": true,
-  "terminal.integrated.enableBell": true,
-  "terminal.integrated.gpuAcceleration": "off"
-}
-```
+Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
 
-VS Code does not support attached-container configuration files for Kubernetes containers, so these terminal dependencies and dotfiles are baked into the image instead.
+ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reached through `kubectl exec`. For this workflow, Codex alerts use the built-in terminal notification path to Ghostty; connecting a Codex environment to ChatGPT Remote requires a supported desktop or SSH host.
 
 ## Build & Push
 
