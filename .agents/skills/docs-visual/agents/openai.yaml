@@ -2,3 +2,6 @@ interface:
   display_name: "Docs Visual"
   short_description: "Evidence-backed docs with imagegen-first visuals"
   default_prompt: "Use $docs-visual to research primary sources, create or revise technical documentation, prefer imagegen visuals, and validate any necessary Mermaid diagrams."
+
+policy:
+  allow_implicit_invocation: false

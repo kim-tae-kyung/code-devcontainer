@@ -1,6 +1,6 @@
 ---
 name: docs-visual
-description: Research, create, rewrite, or deeply audit technical documentation from authoritative official docs, GitHub repositories, source code, schemas, tests, and runtime configuration, then add verified imagegen-first visuals or maintainable Mermaid diagrams when they materially improve understanding. Use for new documentation sets, major revisions of existing docs, architecture and API references, lifecycle or packet-flow explanations, code-to-doc audits, and any task where claims and visuals must be traced to primary evidence rather than inferred from existing prose.
+description: Research, create, rewrite, or deeply audit technical documentation from authoritative official docs, GitHub repositories, source code, schemas, tests, and runtime configuration, then add verified imagegen-first visuals or maintainable Mermaid diagrams when they materially improve understanding. Use only when the user explicitly invokes `$docs-visual`, names `docs-visual`, or identifies its skill path. Do not invoke implicitly for documentation, research, audit, or visualization tasks that merely match these capabilities.
 ---
 
 # Docs Visual
@@ -8,6 +8,30 @@ description: Research, create, rewrite, or deeply audit technical documentation 
 Build evidence-backed documentation and, when useful, visuals as one verified
 artifact. Treat existing prose, diagrams, and citations as untrusted until
 direct sources support them.
+
+## Follow the operating contract
+
+Apply these rules to every artifact and reply:
+
+- Write artifacts in English, including code, comments, documentation, plans,
+  pull request text, and issues, unless the user explicitly requests another
+  artifact language. Reply in Korean when the current request is primarily
+  Korean; otherwise reply in English.
+- Keep the output compact. State each point once; omit preambles, request
+  restatements, recaps, and background already available from linked sources.
+- Stay faithful to the request. Do only the requested work and state
+  assumptions explicitly.
+- Link every claim about an external tool, API, configuration, or version to
+  its official documentation, and state only the artifact-specific
+  implication. Support repository behavior with pinned primary evidence.
+- Describe the current state only. Omit prior behavior and transition history
+  unless the user explicitly includes them in scope.
+- Surface a must-know pitfall as a brief **Known Issue** with a direct official
+  or primary-source link. Do not bury it in prose or invent one without
+  evidence.
+- Use environment access for observation and testing, not as a source of
+  durable assumptions. Include environment-specific values only when the
+  artifact itself defines that environment.
 
 ## Start with a scope contract
 

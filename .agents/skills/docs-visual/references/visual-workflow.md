@@ -96,6 +96,11 @@ Use exact component, endpoint, RPC, field, and status names. Avoid:
 - icons that imply unsupported virtualization, cloud, or security guarantees;
 - “automatic retry” without identifying its owner.
 
+Write visual labels in English unless the user explicitly requests another
+artifact language. Treat values observed in the working environment as test
+evidence, not reusable diagram content; include them only when the artifact
+defines that environment.
+
 Do not force 16:9 or another aspect ratio. Use landscape, portrait, or a wide
 custom canvas according to content. Prioritize readable labels, natural panel
 width, and sufficient spacing over uniform dimensions.
@@ -145,6 +150,9 @@ Constraints: only verified relationships; label deployment-dependent behavior
 Avoid: unsupported components, fixed sample values, decorative filler,
 ambiguous arrows, clipped text, watermark
 ```
+
+Use English exact text unless the user explicitly requests another artifact
+language.
 
 For a documentation set, define a shared style prompt and an asset-specific
 content prompt. Do not blindly reuse one composition for every subject.

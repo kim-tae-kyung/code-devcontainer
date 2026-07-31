@@ -20,7 +20,8 @@ Run checks in increasing scope:
 6. image decoding and visual inspection;
 7. pinned external source verification;
 8. cross-document semantic consistency;
-9. repository-specific tests.
+9. operating-contract conformance;
+10. repository-specific tests.
 
 Start with:
 
@@ -99,14 +100,20 @@ Search the entire documentation set for:
 - deployment values presented as constants;
 - external systems described as product-owned components;
 - control paths presented as live data paths;
-- old terminology and out-of-scope concepts.
+- old terminology and out-of-scope concepts;
+- unrequested prior behavior or transition history;
+- environment observations presented as durable assumptions;
+- external tool, API, configuration, or version claims without official links;
+- must-know pitfalls buried in prose instead of a brief linked **Known Issue**.
 
 When generated schemas and executable routes can drift, independently calculate
 both sets and compare them. Do not copy an existing count from the document.
 
 ## Final report
 
-Lead with the outcome. Include:
+Lead with the outcome. Keep the report compact, state assumptions explicitly,
+and include only the applicable sections below. Do not add a preamble, restate
+the request, or recap information already available from linked sources.
 
 ### Confirmed model
 
@@ -155,5 +162,8 @@ Report commands or check categories and exact results:
 
 Identify remaining source ambiguity, generated-text maintainability, unavailable
 integrations, or checks that were blocked.
+
+Surface any must-know residual risk as a brief **Known Issue** with a direct
+official or primary-source link.
 
 Do not claim a clean result if validation skipped a required layer.

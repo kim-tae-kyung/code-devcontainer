@@ -18,7 +18,9 @@ Establish the evidence contract before research:
 - included and excluded systems;
 - target reader and decisions the documentation must support;
 - acceptable inference level;
-- required official links and permanent source URLs.
+- required official links and permanent source URLs;
+- current-state cutoff and whether history is explicitly in scope;
+- environment-specific values that the artifact itself defines.
 
 Use this default evidence order unless the subject requires another:
 
@@ -62,6 +64,8 @@ Before editing an existing set:
    correct text.
 5. Inspect whether links directly prove their adjacent claims.
 6. Mark duplicated concepts and choose an authoritative location.
+7. Mark unrequested prior-state narratives and environment observations that
+   existing prose incorrectly presents as durable product behavior.
 
 Do not make broad edits until the matrix shows which statements survive.
 
@@ -171,6 +175,12 @@ Use source search strategically:
 
 ## Citations and uncertainty
 
+Link every claim about an external tool, API, configuration, or version to its
+official documentation and state only the artifact-specific implication. Use
+permanent primary-source links for repository behavior. Do not rely on
+environment inspection as durable evidence unless the artifact defines that
+environment.
+
 Prefer:
 
 - permanent versioned source links;
@@ -196,3 +206,6 @@ Use uncertainty labels precisely:
 
 State what is unknown and why. Do not replace uncertainty with a proposed
 design unless the user asked for design work.
+
+Describe only the pinned current state unless the user explicitly requests
+prior behavior or transition history.
