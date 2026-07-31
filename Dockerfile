@@ -16,7 +16,8 @@ ENV TZ=${TZ} \
     LANG=en_US.UTF-8 \
     GOPATH=${HOME}/go \
     PATH=/usr/local/go/bin:${HOME}/go/bin:${HOME}/.local/bin:${PATH} \
-    PLAYWRIGHT_BROWSERS_PATH=${HOME}/.cache/ms-playwright
+    PLAYWRIGHT_BROWSERS_PATH=${HOME}/.cache/ms-playwright \
+    CAPTURE_DEMO_RUNTIME_DIR=${HOME}/.claude/skills/capture-demo
 
 LABEL org.opencontainers.image.source="https://github.com/kim-tae-kyung/code-devcontainer"
 LABEL org.opencontainers.image.description="Development container with Claude Code and Codex CLI"
@@ -70,7 +71,7 @@ RUN sudo install -d -o node -g node /workspace
 RUN go install golang.org/x/tools/gopls@latest
 RUN go install github.com/mikefarah/yq/v4@latest
 RUN npm install -g pyright typescript typescript-language-server
-RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort asciinema
+RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort asciinema==2.4.0
 
 # Copy configuration files
 COPY --chown=node:node claude-settings.json   ${HOME}/.claude/settings.json
@@ -84,8 +85,8 @@ COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
 COPY --chown=node:node .agents/skills/ ${HOME}/.agents/skills/
 
-# Vendor the capture-demo skill's sharp dependency (PNG frames -> GIF).
-RUN cd ${HOME}/.claude/skills/capture-demo && npm install --omit=dev
+# Vendor the shared capture-demo runtime and exercise both render paths.
+RUN cd ${CAPTURE_DEMO_RUNTIME_DIR} && npm ci --omit=dev && npm test
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
@@ -99,6 +100,7 @@ RUN claude mcp add -s user playwright -- npx -y @playwright/mcp@latest --headles
 
 # Smoke test
 RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
+  test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
   go version && gopls version && yq --version && \
   node --version && python3 --version && \

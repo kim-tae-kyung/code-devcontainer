@@ -1,62 +1,63 @@
 ---
 name: capture-demo
 description: >-
-  Record a web flow (via the Playwright MCP) or a terminal/tmux work session and
-  render it to an animated GIF for docs or GitHub issues. Use when the user wants
-  a screen recording, demo GIF, screenshot animation, or visual reference to
-  attach to a README, PR, or issue.
+  Create verified animated GIF demos from Playwright browser flows or isolated
+  terminal sessions for documentation, PRs, and issues.
+disable-model-invocation: true
 ---
 
-# capture-demo
+# Capture Demo
 
-Produce an **animated GIF** demonstrating a browser flow or a terminal session.
-
-**Why GIF only:** GitHub (issues, PRs, README) renders animated **GIF inline**;
-animated WebP is not reliably rendered, and MP4/WebM need drag-drop video
-attachments. For "attach a reference to an issue," GIF is the portable choice.
-See <https://github.com/orgs/community/discussions/5470>.
-
-Scripts live in this skill dir. `$DIR` below = the directory containing this file.
-
-## Browser flow → GIF
-
-Drive the already-registered **Playwright MCP**, saving a PNG per step, then
-assemble with `frames_to_gif.mjs` (uses `sharp`, no ffmpeg).
-
-1. Navigate/interact with the Playwright MCP tools (`browser_navigate`, clicks, etc.).
-2. After each meaningful state, call `browser_take_screenshot` and save to a
-   dedicated dir with zero-padded names: `frames/001.png`, `frames/002.png`, …
-   (zero-pad so ordering is stable).
-3. Assemble:
-
-   ```bash
-   node "$DIR/frames_to_gif.mjs" frames/ --out demo.gif --delay 900 --width 1000
-   ```
-
-   - `--delay` ms per frame (step demos read best ~700–1200ms).
-   - `--width` optional downscale to shrink the file.
-   - All frames must share dimensions — keep one viewport size across screenshots.
-
-## Terminal / tmux session → GIF
-
-`terminal_capture.sh` wraps `asciinema rec` + `agg`.
+Create a local animated GIF and return its path. Do not upload or attach it
+unless the user separately requests that action. Scripts live in this skill
+directory; use `${CLAUDE_SKILL_DIR}` as `RUNTIME`.
 
 ```bash
-# Record a one-off command:
-"$DIR/terminal_capture.sh" -o demo.gif -c "npm test; sleep 1"
-
-# Record real work in a tmux session named "work":
-"$DIR/terminal_capture.sh" -o demo.gif -s work --theme github-dark --font-size 20
+RUNTIME="$CLAUDE_SKILL_DIR"
 ```
 
-Recording ends when the command exits or you detach tmux (`prefix d`).
+Avoid capturing credentials, tokens, personal data, or unrelated content.
 
-Tuning (passed through to `agg`):
-- `--font-size` bigger = sharper but larger file (default 14; 20–28 reads well).
-- `--theme` e.g. `github-dark`, `monokai`, `dracula`, `nord`.
-- `--speed` e.g. `2` to speed up long sessions.
+## Browser flow
 
-## Keeping GIFs small
-- Fewer frames / higher `--delay` for browser step demos.
-- `--width` downscale (browser) — 800–1000px is plenty for an issue.
-- `--speed` and a moderate `--font-size` (terminal).
+1. Use the configured Playwright MCP and keep one viewport for the entire flow.
+2. Save settled, meaningful states to a temporary directory as `001.png`,
+   `002.png`, and so on.
+3. Inspect representative frames, then assemble at least two frames:
+
+   ```bash
+   node "$RUNTIME/frames_to_gif.mjs" "$FRAMES_DIR" \
+     --out "$OUTPUT" --delay 900 --width 1000
+   ```
+
+4. Reduce frame count or width if the GIF is unnecessarily large. Remove
+   temporary frames after verifying the result.
+
+## Terminal flow
+
+Never attach to or reuse the tmux session containing Claude Code. Every
+recording uses a private tmux socket and a fresh session that the runtime
+destroys afterward.
+
+Record a reproducible command:
+
+```bash
+"$RUNTIME/terminal_capture.sh" --out "$OUTPUT" \
+  --command "npm test" --cols 100 --rows 30
+```
+
+For typing, prompts, or a TUI, run an interactive recording in a PTY, send input
+through that PTY, and finish with `exit`:
+
+```bash
+"$RUNTIME/terminal_capture.sh" --out "$OUTPUT" \
+  --interactive --cols 100 --rows 30 --duration 60
+```
+
+Use `--theme github-dark --font-size 20` by default. Do not overwrite an
+existing output unless the user explicitly requests replacement.
+
+## Handoff
+
+Verify that the GIF exists and is animated. Report its path, byte size,
+dimensions, and frame count.

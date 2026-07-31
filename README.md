@@ -14,7 +14,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
   - **context7** — on-demand, up-to-date library/framework documentation
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
-- **Demo capture** (→ GIF): `asciinema` + `agg` (terminal/tmux) and `sharp` (browser screenshots), wired up by the `capture-demo` skill.
+- **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
 - **Documentation workflow**: the `docs-visual` skill is installed globally for Codex to research, write, audit, visualize, and validate technical documentation.
 
 ## Usage
@@ -65,18 +65,28 @@ npm run dev  # e.g. Vite on localhost:5173
 
 ### Capturing demos (GIF)
 
-The `capture-demo` skill turns work into an **animated GIF** to attach to docs, PRs, or issues. GIF is used deliberately: it is the only animated format GitHub renders inline (animated WebP is not; MP4/WebM need video attachments).
+The `capture-demo` skill turns browser flows or isolated terminal sessions into
+an **animated GIF** for docs, PRs, or issues. It never attaches to the tmux
+session running the agent: every terminal recording creates a private tmux
+socket and a fresh session, then removes that server when recording ends.
+
+The skill is user-invocable only. Call it explicitly as `$capture-demo` in
+Codex or `/capture-demo` in Claude Code; ordinary recording-related language
+does not activate it.
 
 ```bash
-# Terminal / tmux session -> GIF (asciinema + agg)
+# Command -> fresh isolated tmux session -> GIF (asciinema + agg)
 ~/.claude/skills/capture-demo/terminal_capture.sh -o demo.gif -c "npm test; sleep 1"
+
+# Interactive fresh tmux session -> GIF; type exit to finish
+~/.claude/skills/capture-demo/terminal_capture.sh -o demo.gif --interactive --duration 60
 
 # Browser flow -> GIF: drive the Playwright MCP, save screenshots as frames/001.png,
 # frames/002.png, ... then assemble (sharp, no ffmpeg):
 node ~/.claude/skills/capture-demo/frames_to_gif.mjs frames/ --out demo.gif --delay 900 --width 1000
 ```
 
-Ask the agent in natural language ("record these steps as a GIF for the issue") and it will invoke the skill.
+Existing outputs are not overwritten unless `--force` is supplied.
 
 ### Technical documentation
 
@@ -103,7 +113,7 @@ Files baked into the image at build time:
 - `tmux.conf` → `~/.tmux.conf`
 - `vimrc` → `~/.vimrc`
 - `.claude/skills/` → `~/.claude/skills/` (agent skills, e.g. `capture-demo`)
-- `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `docs-visual`)
+- `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `capture-demo`, `docs-visual`)
 
 Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
 

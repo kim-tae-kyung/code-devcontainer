@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "description": "Vendored deps for the capture-demo skill (PNG frames -> animated GIF).",
+  "scripts": {
+    "test": "bash ./smoke_test.sh"
+  },
   "dependencies": {
     "sharp": "0.35.3"
   }
