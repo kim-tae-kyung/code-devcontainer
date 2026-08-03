@@ -6,7 +6,6 @@
     "pr": ""
   },
   "env": {
-    "CLAUDE_CODE_EFFORT_LEVEL": "xhigh",
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
     "DISABLE_ERROR_REPORTING": "1"
   },
@@ -21,7 +20,6 @@
     ],
     "defaultMode": "auto"
   },
-  "effortLevel": "xhigh",
   "tui": "default",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,

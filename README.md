@@ -119,7 +119,7 @@ Claude Code's MCP servers (Playwright, context7) are registered at user scope du
 
 ### Model & effort (Codex)
 
-No model is pinned. Codex selects an available model for the task, while `model_reasoning_effort = "xhigh"` makes difficult, multi-step work the default priority. Choose a model or reasoning level for one task with `/model` or `/reasoning` ([Codex developer commands](https://learn.chatgpt.com/docs/developer-commands)).
+No model is pinned. Codex selects an available model for the task. Reasoning effort is left at the model default for ordinary turns and raised to `xhigh` only inside plan mode via `plan_mode_reasoning_effort`, so the depth is spent where it pays off instead of on every routine edit. Choose a model or reasoning level for one task with `/model` or `/reasoning` ([Codex developer commands](https://learn.chatgpt.com/docs/developer-commands)).
 
 GPT‑5.6 provides three Codex model tiers ([Codex model guidance](https://learn.chatgpt.com/docs/models)):
 
@@ -143,9 +143,9 @@ No model is pinned, so the account default applies. Choose per task with `/model
 
 See [Choosing a Claude model and effort level](https://claude.com/blog/claude-model-and-effort-level-in-claude-code): a wrong answer despite full context means pick a larger model; a skipped file or abandoned refactor means raise effort.
 
-Effort is set to `xhigh` twice, in `effortLevel` and in `env.CLAUDE_CODE_EFFORT_LEVEL`.
+No effort level is pinned either, so each model's default (`high`) applies. Raise it per task with `/effort` ([Adjust effort level](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
 
-> **Known Issue** — the second one is load-bearing. On first run of Fable 5, Opus 4.8, or Opus 4.7, Claude Code applies *that model's* default effort (`high`) over the saved `effortLevel` and holds it across sessions until an explicit `/effort` or `--effort` ([Adjust effort level](https://code.claude.com/docs/en/model-config#adjust-effort-level)). In an unattended pod nobody is there to type it, so the environment variable — which overrides per session — is what keeps `xhigh` in force. Opus 5 has no such hold.
+> **Why it is not pinned** — Claude Code has no counterpart to Codex's `plan_mode_reasoning_effort`. Effort here is either global (`effortLevel` / `env.CLAUDE_CODE_EFFORT_LEVEL`) or per session/turn (`/effort`); it cannot be scoped to a permission mode, and no hook can set it. Pinning `xhigh` to deepen planning would raise every routine edit too, so the setting was removed. Plan mode does carry a *model* override for the rest of the session — pick one with `/model` while in plan mode — but there is no effort equivalent.
 
 Auto memory is off (`autoMemoryEnabled: false`), matching Codex's `memories = false`. It is machine-local under `~/.claude/projects/<project>/memory/`, does not outlive the pod, and `cleanupPeriodDays: 3` sweeps that tree ([auto memory](https://code.claude.com/docs/en/memory#auto-memory)). Persistent instructions belong in `operating-principles.md`.
 
