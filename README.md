@@ -178,7 +178,7 @@ Renovate runs weekly on Monday and automerges minor, patch, and digest updates. 
 
 ### Via GitHub Actions
 
-Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, picking up the latest base image and tools along with whatever Renovate merged earlier that morning. The final step prunes the GHCR package back to `:latest`. To build off-schedule:
+Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, picking up the latest base image and tools along with whatever Renovate merged earlier that morning. Each architecture builds on its own native runner — `linux/amd64` on `ubuntu-latest`, `linux/arm64` on `ubuntu-24.04-arm` — and a merge job joins the two digests into the `:latest` manifest, then prunes the GHCR package back to it. Emulating arm64 under QEMU is not an option here; see `AGENTS.md`. To build off-schedule:
 
 1. Go to the **Actions** tab in the repository
 2. Select **Build and Push Container Image** workflow

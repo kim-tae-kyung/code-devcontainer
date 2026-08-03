@@ -29,8 +29,15 @@ automation fails with `Executable doesn't exist at .../chromium_headless_shell-<
 
 The build launches Chromium once and fails if it cannot, so a mismatch cannot
 reach a published image. That check runs on `linux/amd64` in CI; `linux/arm64` is
-only exercised by the release build, after automerge. Watch arm64 pods on the
-first run after a Playwright bump.
+only exercised by the release build, after automerge — so a Playwright bump can
+be merged before anything has run it on arm64.
+
+The release build gives each architecture its own native runner
+(`ubuntu-latest` and `ubuntu-24.04-arm`) and joins the two digests into one
+manifest. Do not fold it back into a single QEMU job: the launch check starts
+the headless shell, whose GPU process cannot start under emulation
+(`GPU process launch failed: error_code=1002`), and it fails there regardless of
+whether the pin is correct.
 
 `@upstash/context7-mcp` tracks `@latest` and needs no such check: it fetches
 documentation over HTTP and is not coupled to anything in the image.
