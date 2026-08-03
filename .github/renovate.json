@@ -39,10 +39,10 @@
   },
   "packageRules": [
     {
-      "description": "Automerge minor/patch/digest updates. platformAutomerge is off so Renovate waits for the CI build itself instead of depending on branch protection being configured with required status checks",
+      "description": "Automerge minor/patch/digest updates via GitHub auto-merge, so a PR lands as soon as it is mergeable rather than waiting for the next weekly Renovate run. Note that main currently has no branch protection, so there are no required status checks for auto-merge to wait on and these PRs merge without the CI build having run. Add validate-config and build as required checks on main to gate them",
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "automerge": true,
-      "platformAutomerge": false
+      "platformAutomerge": true
     },
     {
       "description": "Major updates require manual review",

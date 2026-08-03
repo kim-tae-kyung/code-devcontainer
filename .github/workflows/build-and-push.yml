@@ -5,8 +5,9 @@ on:
   schedule:
     - cron: "0 21 * * 0" # Every Monday 06:00 KST (21:00 UTC Sunday)
 
-# Shared with the cleanup workflow: deleting untagged versions while a
-# multi-arch manifest is being pushed can remove in-flight children.
+# Serialised because the cleanup step deletes untagged versions, and doing that
+# while another run is pushing a multi-arch manifest can remove in-flight
+# children. Queue overlapping runs instead of cancelling them.
 concurrency:
   group: ghcr-package
   cancel-in-progress: false

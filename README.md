@@ -174,11 +174,11 @@ ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reache
 
 `ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
 
-Renovate automerges minor, patch, and digest updates only after that build passes. `platformAutomerge` is off, so Renovate waits for the branch status itself rather than delegating to GitHub auto-merge, which would require branch protection with required status checks ([platformAutomerge](https://docs.renovatebot.com/configuration-options/#platformautomerge)).
+Renovate runs weekly on Monday and automerges minor, patch, and digest updates. It delegates the merge to GitHub via [`platformAutomerge`](https://docs.renovatebot.com/configuration-options/#platformautomerge) so a PR lands as soon as it is mergeable, instead of waiting a full week for the next Renovate run to merge it. GitHub auto-merge only waits on checks that the branch requires, and `main` has no branch protection configured — so these PRs currently merge without the CI build having run. Adding `validate-config` and `build` as required status checks on `main` is what makes the build gate them.
 
 ### Via GitHub Actions
 
-Container images are built and pushed via GitHub Actions, also on a weekly schedule to pick up the latest base image and tools.
+Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, picking up the latest base image and tools along with whatever Renovate merged earlier that morning. The final step prunes the GHCR package back to `:latest`. To build off-schedule:
 
 1. Go to the **Actions** tab in the repository
 2. Select **Build and Push Container Image** workflow

@@ -3,7 +3,9 @@ name: Renovate
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 21 * * *" # Daily 06:00 KST (21:00 UTC previous day)
+    # Three hours ahead of the image build, so automerged updates are on main
+    # by the time it starts.
+    - cron: "0 18 * * 0" # Every Monday 03:00 KST (18:00 UTC Sunday)
 
 permissions:
   contents: read
