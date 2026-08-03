@@ -90,9 +90,14 @@ Existing outputs are not overwritten unless `--force` is supplied.
 
 ### Technical documentation
 
-Codex automatically discovers `docs-visual` from `~/.agents/skills/docs-visual`.
-Ask for a documentation audit or rewrite to let Codex select it implicitly, or
-invoke it explicitly with `$docs-visual`.
+Codex discovers `docs-visual` from `~/.agents/skills/docs-visual`. Like
+`capture-demo`, it is user-invocable only: call it explicitly as `$docs-visual`.
+Asking for a documentation audit or rewrite in ordinary language does not
+activate it, because the skill sets `allow_implicit_invocation: false`.
+
+The skill adds only what the global operating principles do not already state:
+pinned primary evidence for repository behavior, and the **Known Issue** callout
+format.
 
 ## Security model
 
@@ -115,7 +120,7 @@ Files baked into the image at build time:
 - `.claude/skills/` → `~/.claude/skills/` (agent skills, e.g. `capture-demo`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `capture-demo`, `docs-visual`)
 
-Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
+Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). context7 tracks `@latest`, resolved when a session starts it. Playwright is pinned via `PLAYWRIGHT_MCP_VERSION`, which `codex-config.toml` mirrors and Renovate raises, because the image installs the Chromium revision that pinned version's `playwright` core requires — deriving the browser from the pin keeps the pair consistent across rebuilds. See `AGENTS.md`. The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
 
 ### Model & effort (Codex)
 
@@ -164,6 +169,12 @@ Claude Remote Control is enabled for every interactive session in the baked-in s
 ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reached through `kubectl exec`. For this workflow, Codex alerts use the built-in terminal notification path to Ghostty; connecting a Codex environment to ChatGPT Remote requires a supported desktop or SSH host.
 
 ## Build & Push
+
+### Continuous integration
+
+`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+
+Renovate automerges minor, patch, and digest updates only after that build passes. `platformAutomerge` is off, so Renovate waits for the branch status itself rather than delegating to GitHub auto-merge, which would require branch protection with required status checks ([platformAutomerge](https://docs.renovatebot.com/configuration-options/#platformautomerge)).
 
 ### Via GitHub Actions
 

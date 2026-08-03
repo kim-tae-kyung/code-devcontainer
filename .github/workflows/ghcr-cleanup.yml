@@ -6,7 +6,13 @@ on:
       dry-run:
         description: "List versions to delete without deleting"
         type: boolean
-        default: false
+        default: true
+
+# Shared with the build workflow so cleanup never runs against a package that is
+# mid-push.
+concurrency:
+  group: ghcr-package
+  cancel-in-progress: false
 
 jobs:
   cleanup:

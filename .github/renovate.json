@@ -7,7 +7,6 @@
   "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
   "minimumReleaseAge": "7 days",
   "pinDigests": false,
-  "ignoreTests": true,
   "customManagers": [
     {
       "customType": "regex",
@@ -16,6 +15,20 @@
       "matchStrings": ["ARG AGG_VERSION=(?<currentValue>v[0-9.]+)"],
       "depNameTemplate": "asciinema/agg",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "description": "Track the Playwright MCP server. Both pins must move together: the Dockerfile derives the bundled Chromium from this version, and codex-config.toml must request the same one",
+      "managerFilePatterns": [
+        "/(^|/)Dockerfile$/",
+        "/(^|/)codex-config\\.toml$/"
+      ],
+      "matchStrings": [
+        "PLAYWRIGHT_MCP_VERSION=(?<currentValue>[0-9][0-9.]*)",
+        "@playwright/mcp@(?<currentValue>[0-9][0-9.]*)"
+      ],
+      "depNameTemplate": "@playwright/mcp",
+      "datasourceTemplate": "npm"
     }
   ],
   "prConcurrentLimit": 5,
@@ -26,14 +39,20 @@
   },
   "packageRules": [
     {
-      "description": "Automerge minor/patch/digest updates via platform auto-merge",
+      "description": "Automerge minor/patch/digest updates. platformAutomerge is off so Renovate waits for the CI build itself instead of depending on branch protection being configured with required status checks",
       "matchUpdateTypes": ["minor", "patch", "digest"],
-      "automerge": true
+      "automerge": true,
+      "platformAutomerge": false
     },
     {
       "description": "Major updates require manual review",
       "matchUpdateTypes": ["major"],
       "automerge": false
+    },
+    {
+      "description": "Take @playwright/mcp immediately. The image derives its Chromium from this pin and the build launches the browser, so holding the pin back only prolongs a mismatch with upstream",
+      "matchDepNames": ["@playwright/mcp"],
+      "minimumReleaseAge": null
     },
     {
       "description": "Group all GitHub Actions updates into one PR",

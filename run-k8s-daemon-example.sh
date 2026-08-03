@@ -21,12 +21,13 @@ OVERRIDES=$(jq -n \
 
 NS_FLAG="${NAMESPACE:+--namespace=$NAMESPACE}"
 
+# Always: the default tag is mutable `latest`, and a node-cached copy would
+# otherwise pin the pod to a stale weekly build. The image CMD keeps it alive.
 kubectl run "$POD_NAME" \
     --image="$IMAGE" \
-    --image-pull-policy=IfNotPresent \
+    --image-pull-policy=Always \
     ${NS_FLAG} \
-    --overrides="$OVERRIDES" \
-    -- sleep infinity
+    --overrides="$OVERRIDES"
 
 echo "Waiting for pod to be ready..."
 kubectl wait --for=condition=Ready "pod/$POD_NAME" ${NS_FLAG} --timeout=600s

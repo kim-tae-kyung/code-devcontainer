@@ -1,13 +1,13 @@
 # Full autonomy: the disposable, isolated k8s pod is the security boundary.
 # https://developers.openai.com/codex/agent-approvals-security
-# Extra High suits difficult work with multiple steps, sources, or tradeoffs.
-# https://learn.chatgpt.com/docs/models
 approval_policy = "never"
 sandbox_mode = "danger-full-access"
 web_search = "live"
 
 # Planning is high-leverage work; always use the maximum configured effort.
+# Extra High suits difficult work with multiple steps, sources, or tradeoffs.
 # https://learn.chatgpt.com/docs/config-file/config-reference
+# https://learn.chatgpt.com/docs/models
 plan_mode_reasoning_effort = "xhigh"
 
 [features]
@@ -35,6 +35,8 @@ enabled = false
 notifications = ["agent-turn-complete", "approval-requested"]
 alternate_screen = "never"
 
+# context7 tracks `@latest`. Playwright is pinned to the version the image built
+# Chromium for; keep it equal to PLAYWRIGHT_MCP_VERSION in the Dockerfile.
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
 # https://github.com/openai/codex/issues/11851
 [mcp_servers.context7]
@@ -47,7 +49,7 @@ startup_timeout_sec = 60
 command = "npx"
 args = [
   "-y",
-  "@playwright/mcp@latest",
+  "@playwright/mcp@0.0.78",
   "--headless",
   "--browser=chromium",
   "--no-sandbox",

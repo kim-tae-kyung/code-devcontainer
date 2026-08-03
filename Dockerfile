@@ -56,9 +56,21 @@ RUN case "${TARGETARCH}" in \
   sudo install -m 0755 /tmp/agg /usr/local/bin/agg && \
   rm /tmp/agg
 
-# Install Chromium for headless browser testing via Playwright MCP
-RUN npx playwright install --with-deps chromium && \
-  sudo apt-get clean && \
+# Install Chromium for headless browser testing via Playwright MCP. The browser
+# revision comes from the pinned server's own playwright core, so the pair cannot
+# drift apart on a rebuild. Renovate raises the pin; the browser follows.
+ARG PLAYWRIGHT_MCP_VERSION=0.0.78
+RUN set -e; \
+  PLAYWRIGHT_CORE="$(npm view "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" dependencies.playwright)"; \
+  if ! echo "${PLAYWRIGHT_CORE}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then \
+    echo "playwright dependency is not an exact version: '${PLAYWRIGHT_CORE}'" >&2; \
+    exit 1; \
+  fi; \
+  echo "Installing Chromium for playwright ${PLAYWRIGHT_CORE}"; \
+  npx -y "playwright@${PLAYWRIGHT_CORE}" install --with-deps chromium; \
+  npx -y "playwright@${PLAYWRIGHT_CORE}" screenshot --browser=chromium about:blank /tmp/launch-check.png; \
+  rm /tmp/launch-check.png; \
+  sudo apt-get clean; \
   sudo rm -rf /var/lib/apt/lists/*
 
 # Ensure Go PATH persists in tmux login shells (which reset PATH via /etc/profile)
@@ -95,8 +107,13 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 RUN npm install -g @openai/codex
 
 # Register Claude Code MCP servers at user scope (writes ~/.claude.json).
-RUN claude mcp add -s user playwright -- npx -y @playwright/mcp@latest --headless --browser=chromium --no-sandbox && \
+RUN claude mcp add -s user playwright -- npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --headless --browser=chromium --no-sandbox && \
   claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
+
+# Fail the build if either server does not load. context7 tracks `@latest` and is
+# re-resolved per session, so for it this covers the build only.
+RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
+  npx -y @upstash/context7-mcp --version
 
 # Smoke test
 RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
@@ -114,3 +131,7 @@ WORKDIR /workspace
 
 # PID 1 must reap zombies; -s keeps reaping as subreaper when pause is PID 1 (shareProcessNamespace)
 ENTRYPOINT ["/usr/bin/tini", "-s", "--"]
+
+# ENTRYPOINT clears the base image CMD, so supply the long-lived default the pod
+# expects. Override it for interactive runs: `docker run -it <image> /bin/bash`.
+CMD ["sleep", "infinity"]
