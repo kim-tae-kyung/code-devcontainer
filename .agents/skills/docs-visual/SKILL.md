@@ -11,27 +11,14 @@ direct sources support them.
 
 ## Follow the operating contract
 
-Apply these rules to every artifact and reply:
+The global operating principles in `AGENTS.md` apply as written. This skill adds
+two rules for documentation work and restates none of them:
 
-- Write artifacts in English, including code, comments, documentation, plans,
-  pull request text, and issues, unless the user explicitly requests another
-  artifact language. Reply in Korean when the current request is primarily
-  Korean; otherwise reply in English.
-- Keep the output compact. State each point once; omit preambles, request
-  restatements, recaps, and background already available from linked sources.
-- Stay faithful to the request. Do only the requested work and state
-  assumptions explicitly.
-- Link every claim about an external tool, API, configuration, or version to
-  its official documentation, and state only the artifact-specific
-  implication. Support repository behavior with pinned primary evidence.
-- Describe the current state only. Omit prior behavior and transition history
-  unless the user explicitly includes them in scope.
+- Support claims about repository behavior with pinned primary evidence, not
+  official documentation alone.
 - Surface a must-know pitfall as a brief **Known Issue** with a direct official
   or primary-source link. Do not bury it in prose or invent one without
   evidence.
-- Use environment access for observation and testing, not as a source of
-  durable assumptions. Include environment-specific values only when the
-  artifact itself defines that environment.
 
 ## Start with a scope contract
 
