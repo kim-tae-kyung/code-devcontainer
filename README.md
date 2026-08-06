@@ -66,9 +66,13 @@ npm run dev  # e.g. Vite on localhost:5173
 ### Capturing demos (GIF)
 
 The `capture-demo` skill turns browser flows or isolated terminal sessions into
-an **animated GIF** for docs, PRs, or issues. It never attaches to the tmux
-session running the agent: every terminal recording creates a private tmux
-socket and a fresh session, then removes that server when recording ends.
+task-specific screenshots or an **animated GIF** for docs, PRs, or issues. A
+browser capture starts with an evidence contract for the target artifact, waits
+for stable application state, reproduces the documented interaction, and
+verifies the final frame. Creation and destructive flows stop at the final
+confirmation boundary unless the request explicitly authorizes submission.
+Every terminal recording creates a private tmux socket and a fresh session,
+then removes that server when recording ends.
 
 The skill is user-invocable only. Call it explicitly as `$capture-demo` in
 Codex or `/capture-demo` in Claude Code; ordinary recording-related language
@@ -81,11 +85,12 @@ does not activate it.
 # Interactive fresh tmux session -> GIF; type exit to finish
 ~/.claude/skills/capture-demo/terminal_capture.sh -o demo.gif --interactive --duration 60
 
-# Browser flow -> GIF: drive the Playwright MCP, save screenshots as frames/001.png,
-# frames/002.png, ... then assemble (sharp, no ffmpeg):
+# Browser flow -> GIF: capture context, interaction, and proved end state as
+# frames/001.png, frames/002.png, ... then assemble (sharp, no ffmpeg):
 node ~/.claude/skills/capture-demo/frames_to_gif.mjs frames/ --out demo.gif --delay 900 --width 1000
 ```
 
+Generic page-open images are not accepted as evidence for distinct procedures.
 Existing outputs are not overwritten unless `--force` is supplied.
 
 ### Technical documentation

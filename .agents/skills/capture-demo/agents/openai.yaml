@@ -1,7 +1,7 @@
 interface:
   display_name: "Capture Demo"
-  short_description: "Capture browser and isolated terminal demos as GIFs"
-  default_prompt: "Use $capture-demo to record the requested browser flow or isolated terminal session and deliver a verified animated GIF."
+  short_description: "Capture task-specific browser and terminal evidence"
+  default_prompt: "Use $capture-demo to define an evidence contract, record the exact requested browser flow or isolated terminal session, and deliver verified task-specific screenshots or an animated GIF."
 
 policy:
   allow_implicit_invocation: false
