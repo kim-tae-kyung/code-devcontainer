@@ -3,7 +3,8 @@
   "cleanupPeriodDays": 3,
   "attribution": {
     "commit": "",
-    "pr": ""
+    "pr": "",
+    "sessionUrl": false
   },
   "env": {
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
