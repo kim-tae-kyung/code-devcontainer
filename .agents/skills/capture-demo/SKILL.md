@@ -58,9 +58,11 @@ shared only when every procedure also has unique, action-specific evidence.
 4. Assert expected labels, values, selection state, enabled controls, and route
    before capture. Reject frames containing loading overlays, transient errors,
    unrelated notifications, or the wrong locale.
-5. For pre-submit documentation sessions, install a browser request guard after
-   login that aborts `POST`, `PUT`, `PATCH`, and `DELETE` requests. Use an
-   explicit allowlist only when the user authorized a required mutation.
+5. For pre-submit documentation sessions, load the required read-only state,
+   then install a browser request guard that aborts mutating `POST`, `PUT`,
+   `PATCH`, and `DELETE` requests. If the UI uses `POST` for reads, allowlist
+   only verified read-only calls by URL and payload. Never allowlist a mutation
+   unless the user authorized it.
 6. Save settled, meaningful states as `001.png`, `002.png`, and so on. A GIF
    should normally show context, the interaction, and the proved end state;
    use only two frames when the task is genuinely a before/after transition.
