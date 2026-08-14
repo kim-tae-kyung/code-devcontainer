@@ -39,5 +39,7 @@ the headless shell, whose GPU process cannot start under emulation
 (`GPU process launch failed: error_code=1002`), and it fails there regardless of
 whether the pin is correct.
 
-`@upstash/context7-mcp` tracks `@latest` and needs no such check: it fetches
-documentation over HTTP and is not coupled to anything in the image.
+`@upstash/context7-mcp` (Codex only; Claude Code gets context7 via the official
+plugin, which talks to Upstash's hosted HTTP server) tracks `@latest` and needs
+no such check: it fetches documentation over HTTP and is not coupled to anything
+in the image.

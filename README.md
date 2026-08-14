@@ -11,7 +11,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
   - `@openai/codex` — installed via npm
 - **MCP Servers** (pre-configured for **both** Claude Code and Codex):
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers
-  - **context7** — on-demand, up-to-date library/framework documentation
+  - **context7** — on-demand, up-to-date library/framework documentation (Claude Code uses the official plugin backed by Upstash's hosted HTTP server; Codex runs the local `npx` server)
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, and common networking utilities.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.

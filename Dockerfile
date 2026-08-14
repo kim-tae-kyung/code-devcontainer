@@ -114,21 +114,25 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 RUN npm install -g @openai/codex
 
 # Register Claude Code MCP servers at user scope (writes ~/.claude.json).
-RUN claude mcp add -s user playwright -- npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --headless --browser=chromium --no-sandbox && \
-  claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
+# context7 comes in as a plugin below instead, which uses Upstash's hosted
+# HTTP server — no npx process per session.
+RUN claude mcp add -s user playwright -- npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --headless --browser=chromium --no-sandbox
 
-# Enable Claude Code LSP support: official code-intelligence plugins wire up the
-# language servers installed above (gopls, pyright, typescript-language-server,
-# rust-analyzer). Installing at build time bakes the plugin cache into the image
+# Install Claude Code plugins: the code-intelligence plugins activate the LSP
+# tool for the language servers installed above (gopls, pyright,
+# typescript-language-server, rust-analyzer); context7 replaces the local MCP
+# registration. Installing at build time bakes the plugin cache into the image
 # so sessions need no marketplace clone at pod start.
 RUN claude plugin marketplace add anthropics/claude-plugins-official && \
   claude plugin install gopls-lsp@claude-plugins-official && \
   claude plugin install pyright-lsp@claude-plugins-official && \
   claude plugin install typescript-lsp@claude-plugins-official && \
-  claude plugin install rust-analyzer-lsp@claude-plugins-official
+  claude plugin install rust-analyzer-lsp@claude-plugins-official && \
+  claude plugin install context7@claude-plugins-official
 
-# Fail the build if either server does not load. context7 tracks `@latest` and is
-# re-resolved per session, so for it this covers the build only.
+# Fail the build if either server does not load. context7 (Codex only; Claude
+# Code uses the hosted plugin) tracks `@latest` and is re-resolved per session,
+# so for it this covers the build only.
 RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
   npx -y @upstash/context7-mcp --version
 
@@ -142,6 +146,7 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/pyright-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/typescript-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp && \
+  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/context7 && \
   command -v pyright-langserver && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
