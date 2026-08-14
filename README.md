@@ -5,7 +5,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
 ## Features
 
 - **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24` (digest-pinned)
-- **Languages**: Node.js, Python 3, Go (latest)
+- **Languages**: Node.js, Python 3, Go (latest), Rust (stable, minimal profile)
 - **AI Tools**:
   - **Claude Code** (Anthropic) — installed via the official native installer
   - `@openai/codex` — installed via npm
@@ -13,7 +13,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers
   - **context7** — on-demand, up-to-date library/framework documentation
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, `tmux`, and common networking utilities.
-- **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`
+- **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
 - **Documentation workflow**: the `docs-visual` skill is installed globally for Codex to research, write, audit, visualize, and validate technical documentation.
 

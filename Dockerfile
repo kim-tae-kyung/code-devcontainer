@@ -15,7 +15,9 @@ ENV TZ=${TZ} \
     EDITOR=vim \
     LANG=en_US.UTF-8 \
     GOPATH=${HOME}/go \
-    PATH=/usr/local/go/bin:${HOME}/go/bin:${HOME}/.local/bin:${PATH} \
+    CARGO_HOME=${HOME}/.cargo \
+    RUSTUP_HOME=${HOME}/.rustup \
+    PATH=/usr/local/go/bin:${HOME}/go/bin:${HOME}/.cargo/bin:${HOME}/.local/bin:${PATH} \
     PLAYWRIGHT_BROWSERS_PATH=${HOME}/.cache/ms-playwright \
     CAPTURE_DEMO_RUNTIME_DIR=${HOME}/.claude/skills/capture-demo
 
@@ -43,6 +45,11 @@ RUN GO_VERSION_STR=$(curl -sSL "https://go.dev/VERSION?m=text" | head -n 1) && \
   sudo rm -rf /usr/local/go && \
   sudo tar -C /usr/local -xzf /tmp/go.tar.gz && \
   rm /tmp/go.tar.gz
+
+# Install Rust (minimal profile) with rust-analyzer for LSP support.
+# rustup detects the target architecture itself, so no TARGETARCH branching.
+RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
+  sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable -c rust-analyzer
 
 # Install agg (asciinema gif generator; renders .cast recordings to GIF).
 # aarch64 ships only a gnu build, amd64 a static musl build — both run on the glibc base.
@@ -73,8 +80,8 @@ RUN set -e; \
   sudo apt-get clean; \
   sudo rm -rf /var/lib/apt/lists/*
 
-# Ensure Go PATH persists in tmux login shells (which reset PATH via /etc/profile)
-RUN echo "export PATH=\"/usr/local/go/bin:${HOME}/go/bin:${HOME}/.local/bin:\$PATH\"" | sudo tee /etc/profile.d/golang.sh
+# Ensure Go/Rust PATH persists in tmux login shells (which reset PATH via /etc/profile)
+RUN echo "export PATH=\"/usr/local/go/bin:${HOME}/go/bin:${HOME}/.cargo/bin:${HOME}/.local/bin:\$PATH\"" | sudo tee /etc/profile.d/golang.sh
 
 # Create workspace
 RUN sudo install -d -o node -g node /workspace
@@ -110,6 +117,16 @@ RUN npm install -g @openai/codex
 RUN claude mcp add -s user playwright -- npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --headless --browser=chromium --no-sandbox && \
   claude mcp add -s user context7 -- npx -y @upstash/context7-mcp
 
+# Enable Claude Code LSP support: official code-intelligence plugins wire up the
+# language servers installed above (gopls, pyright, typescript-language-server,
+# rust-analyzer). Installing at build time bakes the plugin cache into the image
+# so sessions need no marketplace clone at pod start.
+RUN claude plugin marketplace add anthropics/claude-plugins-official && \
+  claude plugin install gopls-lsp@claude-plugins-official && \
+  claude plugin install pyright-lsp@claude-plugins-official && \
+  claude plugin install typescript-lsp@claude-plugins-official && \
+  claude plugin install rust-analyzer-lsp@claude-plugins-official
+
 # Fail the build if either server does not load. context7 tracks `@latest` and is
 # re-resolved per session, so for it this covers the build only.
 RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
@@ -120,6 +137,12 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
   go version && gopls version && yq --version && \
+  cargo --version && rustc --version && rust-analyzer --version && \
+  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/gopls-lsp && \
+  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/pyright-lsp && \
+  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/typescript-lsp && \
+  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp && \
+  command -v pyright-langserver && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
   infocmp -x tmux-256color >/dev/null && \
