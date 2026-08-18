@@ -27,12 +27,16 @@ persistence = "none"
 [analytics]
 enabled = false
 
-# Use Codex's built-in TUI notifications. Its default `auto` method prefers
-# OSC 9 and falls back to BEL; tmux passthrough forwards either to the client.
+# `kubectl exec` does not reliably expose the outer terminal identity, so force
+# Ghostty-compatible OSC 9 instead of relying on auto detection. tmux passthrough
+# forwards it to the client; notify only while unfocused to avoid duplicate noise.
 # tmux alt-screen bypasses history-limit, so render on the main screen.
+# https://learn.chatgpt.com/docs/config-file/config-advanced#notifications
 # https://github.com/openai/codex/pull/8555
 [tui]
-notifications = ["agent-turn-complete", "approval-requested"]
+notifications = true
+notification_method = "osc9"
+notification_condition = "unfocused"
 alternate_screen = "never"
 
 # context7 tracks `@latest`. Playwright is pinned to the version the image built

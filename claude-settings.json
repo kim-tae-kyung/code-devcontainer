@@ -36,6 +36,7 @@
     ],
     "defaultMode": "auto"
   },
+  "preferredNotifChannel": "ghostty",
   "tui": "default",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,

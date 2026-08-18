@@ -151,6 +151,7 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
   infocmp -x tmux-256color >/dev/null && \
+  tmux -L config-smoke -f ${HOME}/.tmux.conf start-server \; kill-server && \
   black --version && pylsp --help >/dev/null && \
   typescript-language-server --version && pyright --version && isort --version && \
   asciinema --version && agg --version
