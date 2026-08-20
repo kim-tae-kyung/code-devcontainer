@@ -130,6 +130,21 @@ RUN claude plugin marketplace add anthropics/claude-plugins-official && \
   claude plugin install rust-analyzer-lsp@claude-plugins-official && \
   claude plugin install context7@claude-plugins-official
 
+# Install the latest stable Herdr release. Its installer selects the native
+# Linux asset and verifies the release-published SHA-256 checksum.
+RUN curl -fsSL https://herdr.dev/install.sh | sh
+
+# Install Herdr's native session integrations after both agent configs have
+# reached their final build-time state. The bundled skill is release-matched;
+# install it into the same user-level discovery directories as the other skills.
+RUN herdr integration install claude && \
+  herdr integration install codex && \
+  install -d ${HOME}/.claude/skills/herdr ${HOME}/.agents/skills/herdr && \
+  herdr --skill > /tmp/herdr-SKILL.md && \
+  install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.claude/skills/herdr/SKILL.md && \
+  install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
+  rm /tmp/herdr-SKILL.md
+
 # Fail the build if either server does not load. context7 (Codex only; Claude
 # Code uses the hosted plugin) tracks `@latest` and is re-resolved per session,
 # so for it this covers the build only.
@@ -139,7 +154,12 @@ RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
 # Smoke test
 RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
+  grep -q '^name: herdr$' ${HOME}/.claude/skills/herdr/SKILL.md && \
+  grep -q '^name: herdr$' ${HOME}/.agents/skills/herdr/SKILL.md && \
   claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
+  herdr --version && herdr --help >/dev/null && \
+  herdr integration status | grep -q '^claude: current ' && \
+  herdr integration status | grep -q '^codex: current ' && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/gopls-lsp && \
