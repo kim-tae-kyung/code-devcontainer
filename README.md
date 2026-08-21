@@ -9,8 +9,8 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **AI Tools**:
   - **Claude Code** (Anthropic) — installed via the official native installer
   - `@openai/codex` — installed via npm
-- **MCP Servers** (pre-configured for **both** Claude Code and Codex):
-  - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers
+- **Browser & docs servers** (pre-configured for **both** Claude Code and Codex):
+  - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (Claude Code uses the official `playwright` plugin; Codex runs the pinned local MCP server)
   - **context7** — on-demand, up-to-date library/framework documentation (Claude Code uses the official plugin backed by Upstash's hosted HTTP server; Codex runs the local `npx` server)
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, and common networking utilities.
 - **Terminal multiplexers**: tmux 3.5+ for the existing workflow, plus the latest stable Herdr release with Claude Code and Codex session integrations.
@@ -78,7 +78,7 @@ requested and the agent is running in a Herdr-managed pane (`HERDR_ENV=1`).
 
 ### Browser Automation (Playwright MCP)
 
-Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with it, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.
+Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code (through the official `playwright` plugin) and Codex (through a pinned MCP registration) are pre-configured with it, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.
 
 ```bash
 # Start your dev server
@@ -136,7 +136,7 @@ format.
 The agents are configured for autonomous, unattended use, on the assumption that the container is **disposable and network-isolated** and is itself the only security boundary:
 
 - **Codex**: `approval_policy = "never"` + `sandbox_mode = "danger-full-access"` — no approval prompts, full filesystem/network access.
-- **Playwright** launches Chromium with `--no-sandbox` (required for headless Chromium running as non-root in a container).
+- **Playwright** launches Chromium with the sandbox disabled (required for headless Chromium running as non-root in a container) — Codex passes `--no-sandbox` on the server command line; Claude Code sets `PLAYWRIGHT_MCP_NO_SANDBOX` via its settings `env`.
 
 Do **not** run this image where host mounts, secrets, or trusted outbound network are reachable. In those environments, prefer Codex `approval_policy = "on-request"` + `sandbox_mode = "workspace-write"`. See OpenAI's controlled-containers guidance: <https://developers.openai.com/codex/agent-approvals-security>
 
@@ -155,7 +155,7 @@ Files baked into the image at build time:
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the release-matched `herdr` skill to both user-level skill directories.
 
-Claude Code's MCP servers (Playwright, context7) are registered at user scope during the build via `claude mcp add` (stored in `~/.claude.json`). context7 tracks `@latest`, resolved when a session starts it. Playwright is pinned via `PLAYWRIGHT_MCP_VERSION`, which `codex-config.toml` mirrors and Renovate raises, because the image installs the Chromium revision that pinned version's `playwright` core requires — deriving the browser from the pin keeps the pair consistent across rebuilds. See `AGENTS.md`. The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
+Claude Code gets both Playwright and context7 through official marketplace plugins installed at build time — no `claude mcp add` registration remains. The playwright plugin launches `@playwright/mcp@latest` with no flags; the flags the agents need in a container (`--headless --browser=chromium --no-sandbox`) are supplied to Claude Code as `PLAYWRIGHT_MCP_*` env vars in `claude-settings.json`. Codex keeps a local MCP registration pinned via `PLAYWRIGHT_MCP_VERSION`, which `codex-config.toml` mirrors and Renovate raises, because the image installs the Chromium revision that pinned version's `playwright` core requires — deriving the browser from the pin keeps that pair consistent across rebuilds. Because the plugin resolves `@latest` per session, Claude Code can briefly outrun the baked Chromium right after an upstream release, until the image is rebuilt and re-pulled. See `AGENTS.md`. The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
 
 ### Model & effort (Codex)
 

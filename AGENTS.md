@@ -27,8 +27,20 @@ follows the pin, so nothing else needs changing. If the two files disagree, the
 pod runs one server version against a browser built for another, and browser
 automation fails with `Executable doesn't exist at .../chromium_headless_shell-<rev>`.
 
-The build launches Chromium once and fails if it cannot, so a mismatch cannot
-reach a published image. That check runs on `linux/amd64` in CI; `linux/arm64` is
+The pin couples the baked Chromium to **Codex**, whose server it names directly.
+The build launches Chromium once and fails if it cannot, so for Codex a mismatch
+cannot reach a published image. **Claude Code is not covered by that guarantee**:
+it gets Playwright via the official `playwright` plugin, whose bundled command is
+`npx @playwright/mcp@latest` — re-resolved each session, with the container
+flags supplied as `PLAYWRIGHT_MCP_*` env vars in `claude-settings.json`. Right
+after an upstream release, an already-published image can run a newer server
+against the older baked Chromium, and Claude Code browser automation fails with
+the same `Executable doesn't exist` error until the Renovate bump rebuilds the
+image and the pod pulls it. There is no runtime self-heal (current releases have
+no `browser_install` tool); keeping the pin current is what keeps that window
+short.
+
+The build's Chromium launch check runs on `linux/amd64` in CI; `linux/arm64` is
 only exercised by the release build, after automerge — so a Playwright bump can
 be merged before anything has run it on arm64.
 

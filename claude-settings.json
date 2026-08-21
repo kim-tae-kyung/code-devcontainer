@@ -8,7 +8,10 @@
   },
   "env": {
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
-    "DISABLE_ERROR_REPORTING": "1"
+    "DISABLE_ERROR_REPORTING": "1",
+    "PLAYWRIGHT_MCP_HEADLESS": "1",
+    "PLAYWRIGHT_MCP_BROWSER": "chromium",
+    "PLAYWRIGHT_MCP_NO_SANDBOX": "1"
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {
@@ -23,14 +26,15 @@
     "pyright-lsp@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true,
-    "context7@claude-plugins-official": true
+    "context7@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true
   },
   "permissions": {
     "allow": [
       "WebFetch",
       "WebSearch",
       "mcp__plugin_context7_context7",
-      "mcp__playwright",
+      "mcp__plugin_playwright_playwright",
       "Bash(git *)",
       "Bash(gh *)"
     ],

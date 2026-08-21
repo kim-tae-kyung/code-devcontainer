@@ -113,22 +113,23 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Install Codex CLI
 RUN npm install -g @openai/codex
 
-# Register Claude Code MCP servers at user scope (writes ~/.claude.json).
-# context7 comes in as a plugin below instead, which uses Upstash's hosted
-# HTTP server — no npx process per session.
-RUN claude mcp add -s user playwright -- npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --headless --browser=chromium --no-sandbox
-
 # Install Claude Code plugins: the code-intelligence plugins activate the LSP
 # tool for the language servers installed above (gopls, pyright,
-# typescript-language-server, rust-analyzer); context7 replaces the local MCP
-# registration. Installing at build time bakes the plugin cache into the image
-# so sessions need no marketplace clone at pod start.
+# typescript-language-server, rust-analyzer); context7 (Upstash's hosted HTTP
+# server — no npx process per session) and playwright replace local MCP
+# registrations, so no `claude mcp add` runs at build. The playwright plugin
+# launches `@playwright/mcp@latest` with no flags; the flags the old MCP
+# registration passed (--headless --browser=chromium --no-sandbox) come from
+# PLAYWRIGHT_MCP_* env vars in claude-settings.json instead. Installing at
+# build time bakes the plugin cache into the image so sessions need no
+# marketplace clone at pod start.
 RUN claude plugin marketplace add anthropics/claude-plugins-official && \
   claude plugin install gopls-lsp@claude-plugins-official && \
   claude plugin install pyright-lsp@claude-plugins-official && \
   claude plugin install typescript-lsp@claude-plugins-official && \
   claude plugin install rust-analyzer-lsp@claude-plugins-official && \
-  claude plugin install context7@claude-plugins-official
+  claude plugin install context7@claude-plugins-official && \
+  claude plugin install playwright@claude-plugins-official
 
 # Install the latest stable Herdr release. Its installer selects the native
 # Linux asset and verifies the release-published SHA-256 checksum.
@@ -145,10 +146,12 @@ RUN herdr integration install claude && \
   install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
   rm /tmp/herdr-SKILL.md
 
-# Fail the build if either server does not load. context7 (Codex only; Claude
-# Code uses the hosted plugin) tracks `@latest` and is re-resolved per session,
-# so for it this covers the build only.
+# Fail the build if a server does not load. The pinned check covers Codex's
+# playwright server and pre-warms the npx cache. The `@latest` checks (the
+# Claude Code playwright plugin, and context7 for Codex) are re-resolved per
+# session, so they cover the build only.
 RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
+  npx -y @playwright/mcp@latest --version && \
   npx -y @upstash/context7-mcp --version
 
 # Smoke test
@@ -167,6 +170,7 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/typescript-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/context7 && \
+  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/playwright && \
   command -v pyright-langserver && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
