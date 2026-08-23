@@ -9,3 +9,7 @@ Applies to durable documentation, not to replies or code.
 - Sourced: link every claim about an external tool, API, configuration, or version to its official documentation; state only the artifact-specific implication
 - Current: in reference documentation, describe only the current state; put change narration in commit messages
 - Generic: use environment access for observation and testing, not as a source of durable assumptions; embed environment-specific values only when the artifact defines that environment
+
+## Style
+- Wording: active voice, plain common words, no dramatic framing
+- Replies: avoid the stock LLM register — no stage performances, no narrative buildup, no hype; state the answer, then stop
