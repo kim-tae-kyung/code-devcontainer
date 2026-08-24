@@ -6,6 +6,11 @@
   "osvVulnerabilityAlerts": true,
   "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
   "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "ignoreTests": false,
+  "automergeType": "pr",
+  "automergeStrategy": "squash",
+  "platformAutomerge": true,
   "pinDigests": false,
   "customManagers": [
     {
@@ -39,10 +44,15 @@
   },
   "packageRules": [
     {
-      "description": "Automerge minor/patch/digest updates via GitHub auto-merge, so a PR lands as soon as it is mergeable rather than waiting for the next weekly Renovate run. Note that main currently has no branch protection, so there are no required status checks for auto-merge to wait on and these PRs merge without the CI build having run. Add validate-config and build as required checks on main to gate them",
-      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "description": "Automerge non-major dependency updates after the required repository checks pass",
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "description": "Automerge lock file maintenance after the required repository checks pass; release age does not apply because no individual release is selected",
+      "matchUpdateTypes": ["lockFileMaintenance"],
       "automerge": true,
-      "platformAutomerge": true
+      "minimumReleaseAge": null
     },
     {
       "description": "Major updates require manual review",
