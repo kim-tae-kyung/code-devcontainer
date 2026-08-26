@@ -25,7 +25,8 @@ A container image for AI-assisted software development, bundling the Anthropic C
 Deploy as a persistent pod and connect via `kubectl exec`:
 
 ```bash
-# Create pod (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
+# Create pod and copy available host credentials
+# (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
 ./run-k8s-daemon-example.sh
 
 # Connect
@@ -40,9 +41,15 @@ docker run -it --rm -v "$PWD:/workspace" ghcr.io/kim-tae-kyung/code-devcontainer
 
 ### Authentication
 
-After starting the container, authenticate with each CLI:
+The Kubernetes launcher copies existing `~/.ssh`, `~/.gitconfig`, GitHub CLI,
+Claude Code, and Codex credentials into the pod. Missing files are skipped. If
+credentials are unavailable, or when using another launch method, authenticate
+with each CLI inside the container:
 
 ```bash
+# GitHub CLI: https://cli.github.com/manual/gh_auth_login
+gh auth login
+
 # Claude Code (opens browser for OAuth)
 claude
 
