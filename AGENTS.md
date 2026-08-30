@@ -77,8 +77,12 @@ skips that prompt
 ([permissions](https://docs.claude.com/en/docs/claude-code/permissions#extend-permissions-with-hooks)).
 Deny and ask rules still override a hook, but this file sets none, so the hook
 holds in every permission mode and does not depend on how a session was
-launched.
-`permissions.defaultMode` cannot stand in for it: Claude Code accepts a
+launched. That matters wherever `--dangerously-skip-permissions` is not on the
+table: Claude Code refuses it under root or `sudo`, and an administrator can
+block the mode outright with `permissions.disableBypassPermissionsMode` in
+managed settings
+([bypassPermissions mode](https://docs.claude.com/en/docs/claude-code/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
+`permissions.defaultMode` cannot stand in for it either: Claude Code accepts a
 `bypassPermissions` default only when the session also passes
 `--dangerously-skip-permissions` or `--allow-dangerously-skip-permissions`.
 
