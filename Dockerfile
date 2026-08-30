@@ -163,6 +163,8 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   herdr --version && herdr --help >/dev/null && \
   herdr integration status | grep -q '^claude: current ' && \
   herdr integration status | grep -q '^codex: current ' && \
+  jq -e '.hooks.PreToolUse[] | select(.matcher == "mcp__plugin_playwright_playwright__.*")' ${HOME}/.claude/settings.json >/dev/null && \
+  jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/gopls-lsp && \
