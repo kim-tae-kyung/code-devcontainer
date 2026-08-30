@@ -55,3 +55,42 @@ whether the pin is correct.
 plugin, which talks to Upstash's hosted HTTP server) tracks `@latest` and needs
 no such check: it fetches documentation over HTTP and is not coupled to anything
 in the image.
+
+## Why a `PreToolUse` hook pre-approves Playwright
+
+`claude-settings.json` carries a `PreToolUse` hook that returns
+`permissionDecision: "allow"` for every `mcp__plugin_playwright_playwright__*`
+tool. It exists because `permissions.allow` alone does not stop plan mode from
+prompting on Playwright calls.
+
+Plan mode gates tool calls until you approve the plan, "except in sessions with
+bypass permissions available"
+([permission modes](https://docs.claude.com/en/docs/claude-code/permission-modes#analyze-before-you-edit-with-plan-mode)).
+Observed behavior beyond that: the gate applies to MCP tools that do not
+advertise a read-only annotation, and the allow-rule lookup runs after the mode
+check, so a `mcp__<server>` allow rule cannot lift it. Playwright's
+`browser_click`, `browser_type` and `browser_navigate` all land on the wrong
+side of that.
+
+A `PreToolUse` hook runs before the permission prompt, and an `allow` decision
+skips that prompt
+([permissions](https://docs.claude.com/en/docs/claude-code/permissions#extend-permissions-with-hooks)).
+Deny and ask rules still override a hook, but this file sets none, so the hook
+holds in every permission mode and does not depend on how a session was
+launched. That matters wherever `--dangerously-skip-permissions` is not on the
+table: Claude Code refuses it under root or `sudo`, and an administrator can
+block the mode outright with `permissions.disableBypassPermissionsMode` in
+managed settings
+([bypassPermissions mode](https://docs.claude.com/en/docs/claude-code/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
+`permissions.defaultMode` cannot stand in for it either: Claude Code accepts a
+`bypassPermissions` default only when the session also passes
+`--dangerously-skip-permissions` or `--allow-dangerously-skip-permissions`.
+
+The hook pre-approves the whole server, `browser_evaluate` and
+`browser_run_code_unsafe` included, which matches how the container already runs
+Chromium — headless, `--no-sandbox`.
+
+`herdr integration install claude` rewrites the same settings file to add its own
+`SessionStart` hook, and it runs after the `COPY`. The build's smoke test asserts
+both hooks survive; if a Herdr release starts replacing the `hooks` object
+instead of merging into it, that assertion is what fails.
