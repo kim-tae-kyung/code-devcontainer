@@ -55,7 +55,7 @@ startup_timeout_sec = 60
 command = "npx"
 args = [
   "-y",
-  "@playwright/mcp@0.0.79",
+  "@playwright/mcp@0.0.80",
   "--headless",
   "--browser=chromium",
   "--no-sandbox",
