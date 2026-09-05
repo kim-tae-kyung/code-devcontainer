@@ -164,7 +164,7 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex/SKILL.md && \
   ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
   codex exec --help >/dev/null && codex exec review --help >/dev/null && \
-  codex features list | grep -Eq '^image_generation +stable +true' && \
+  codex features list | grep -E '^image_generation +stable +true' >/dev/null && \
   jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash")' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.permissions.allow | index("Bash(codex *)")' ${HOME}/.claude/settings.json >/dev/null && \
   CODEX_HOOK="$(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[0].command' ${HOME}/.claude/settings.json)" && \

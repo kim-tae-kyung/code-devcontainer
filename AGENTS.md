@@ -3,6 +3,16 @@
 Maintenance context for this build repository. Nothing here ships in the image;
 the image carries `operating-principles.md`.
 
+## Commit hand-made changes straight to `main`
+
+Work done by the maintainer or an agent in this repository goes directly to
+`main`: commit and push there, no feature branch and no pull request. Pull
+requests are for Renovate, whose automerge waits on the CI build job. That job
+runs only on `pull_request` events, so a direct push to `main` gets the
+settings and TOML checks but not the image smoke test; run the smoke test
+locally (`podman build --platform linux/arm64 .`) when a change touches the
+Dockerfile.
+
 ## Check the Playwright MCP pin while you are here
 
 `@playwright/mcp` loads only the Chromium revision its `playwright` core was
