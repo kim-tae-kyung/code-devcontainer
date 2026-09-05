@@ -21,7 +21,7 @@ Run checks in increasing scope:
 7. pinned external source verification;
 8. cross-document semantic consistency;
 9. operating-contract conformance;
-10. repository-specific tests.
+10. checks relevant to changed documentation and required repository gates.
 
 Start with:
 

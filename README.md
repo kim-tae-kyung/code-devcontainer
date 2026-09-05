@@ -10,9 +10,9 @@ A container image for AI-assisted software development, bundling the Anthropic C
   - **Claude Code** (Anthropic) — installed via the official native installer
   - `@openai/codex` — installed via npm
 - **Browser & docs servers** (pre-configured for **both** Claude Code and Codex):
-  - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (Claude Code uses the official `playwright` plugin; Codex runs the pinned local MCP server)
+  - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (both CLIs run the same pinned local MCP server)
   - **context7** — on-demand, up-to-date library/framework documentation (Claude Code uses the official plugin backed by Upstash's hosted HTTP server; Codex runs the local `npx` server)
-- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, and common networking utilities.
+- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, and common networking utilities. The image also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/).
 - **Terminal multiplexers**: tmux 3.5+ for the existing workflow, plus the latest stable Herdr release with Claude Code and Codex session integrations.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
@@ -23,10 +23,13 @@ A container image for AI-assisted software development, bundling the Anthropic C
 
 ### Kubernetes (primary)
 
-Deploy as a persistent pod and connect via `kubectl exec`:
+Run the launcher on the Kubernetes control-plane host with `kubectl` and `jq`
+available, then connect to the long-lived Pod with `kubectl exec`. The launcher
+creates the Pod, waits for readiness, and prints the connection command
+([kubectl exec](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/)):
 
 ```bash
-# Create pod and copy available host credentials
+# Create pod and wait for readiness
 # (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
 ./run-k8s-daemon-example.sh
 
@@ -42,21 +45,27 @@ docker run -it --rm -v "$PWD:/workspace" ghcr.io/kim-tae-kyung/code-devcontainer
 
 ### Authentication
 
-The Kubernetes launcher copies existing `~/.ssh`, `~/.gitconfig`, GitHub CLI,
-Claude Code, and Codex credentials into the pod. Missing files are skipped. If
-credentials are unavailable, or when using another launch method, authenticate
-with each CLI inside the container:
+Authenticate inside the running container. The launcher does not read or copy
+host credentials or Git configuration. Set Git identity inside the Pod when
+needed ([Git configuration](https://git-scm.com/docs/git-config)).
 
 ```bash
 # GitHub CLI: https://cli.github.com/manual/gh_auth_login
 gh auth login
 
-# Claude Code (opens browser for OAuth)
-claude
+# Claude Code: open the printed URL locally and paste the login code
+claude auth login
 
-# Codex CLI (sign in with ChatGPT account or API key)
-codex
+# Codex CLI: sign in from a remote/headless Pod
+codex login --device-auth
 ```
+
+For Claude Code, follow the [container login flow](https://code.claude.com/docs/en/troubleshoot-install#oauth-login-fails-in-wsl2-ssh-or-containers).
+For Codex, enable device-code login for your account or workspace and follow
+[headless authentication](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
+The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
+its API permissions come from your cluster's RBAC, not from the launcher's
+host credentials ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
 
 ### Terminal sessions (tmux and Herdr)
 
@@ -86,7 +95,7 @@ requested and the agent is running in a Herdr-managed pane (`HERDR_ENV=1`).
 
 ### Browser Automation (Playwright MCP)
 
-Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code (through the official `playwright` plugin) and Codex (through a pinned MCP registration) are pre-configured with it, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.
+Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with the same pinned MCP registration, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.
 
 ```bash
 # Start your dev server
@@ -151,22 +160,19 @@ Claude invokes them from ordinary language ("ask codex", "codex한테 이 plan
   and the skill checks the PNG header and views the image before reporting
   the path and dimensions.
 
-Every call passes `--ephemeral` (no Codex session files) and
-`--skip-git-repo-check` (`/workspace` is often not a repository), and none
-passes `-s`: Codex's Linux sandbox cannot start inside an unprivileged
-container, so the calls run under the configured `danger-full-access` policy
-described under [Security model](#security-model). Codex needs
-its own login in the pod (`codex login status`); the Kubernetes launcher copies
-`~/.codex/auth.json` from the host.
+Every call passes `--ephemeral` and `--skip-git-repo-check`, and inherits the
+configured `danger-full-access` policy described under
+[Security model](#security-model), without adding `-s`
+([Codex execution options](https://learn.chatgpt.com/docs/non-interactive-mode)).
+Codex needs its own login in the Pod; check it with `codex login status`
+([authentication](https://learn.chatgpt.com/docs/auth)).
 
-`claude-settings.json` allows `Bash(codex *)` and adds a `PreToolUse` hook that
-pre-approves a single-line command starting with `codex ` (no `;`, `&`, `|`,
-`>`, backticks, `$(`, `<(`, or `--dangerously`) so plan review runs inside plan mode without a
-prompt; see `AGENTS.md`. Neither OpenAI's
-[Codex plugin for Claude Code](https://github.com/openai/codex-plugin-cc) nor
-`codex mcp-server` is used: the plugin would add a second review path with its
-own job state, and the MCP server prints a deprecation notice in Codex CLI
-0.153.
+Claude Code's default bypass mode applies to these calls; no custom approval
+hook or prompt-character filter is installed
+([permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
+Review-only requests remain read-only by instruction. When the original request
+includes implementation, Claude can apply relevant findings without a second
+approval. Recoverable failures get one retry, with partial edits checked first.
 
 ### Technical documentation
 
@@ -181,12 +187,26 @@ format.
 
 ## Security model
 
-The agents are configured for autonomous, unattended use, on the assumption that the container is **disposable and network-isolated** and is itself the only security boundary:
+This image is intended for trusted IaaS development, including administration
+of clusters where the operator supplies broad permissions. Network isolation
+is not an assumption or a control provided by this repository.
 
-- **Codex**: `approval_policy = "never"` + `sandbox_mode = "danger-full-access"` — no approval prompts, full filesystem/network access.
-- **Playwright** launches Chromium with the sandbox disabled (required for headless Chromium running as non-root in a container) — Codex passes `--no-sandbox` on the server command line; Claude Code sets `PLAYWRIGHT_MCP_NO_SANDBOX` via its settings `env`.
+- **Codex** uses `approval_policy = "never"` and `sandbox_mode = "danger-full-access"`
+  ([Codex permissions](https://developers.openai.com/codex/agent-approvals-security)).
+- **Claude Code** starts in `bypassPermissions`, with no custom approval hooks.
+  Its built-in exceptions still apply; this setting does not promise that every
+  possible prompt disappears
+  ([Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
+- **Playwright** receives `--no-sandbox` in both MCP registrations
+  ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
 
-Do **not** run this image where host mounts, secrets, or trusted outbound network are reachable. In those environments, prefer Codex `approval_policy = "on-request"` + `sandbox_mode = "workspace-write"`. See OpenAI's controlled-containers guidance: <https://developers.openai.com/codex/agent-approvals-security>
+The CLIs run as `node`. Kubernetes API authority depends on the Pod's selected
+ServiceAccount and cluster RBAC. The launcher retains token-mount defaults and
+does not create roles or bindings
+([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
+Shared instructions define task scope, preserve review-only behavior, and
+require clarification for unapproved destructive actions. They do not create
+an operating-system or cluster security boundary.
 
 ## Configuration
 
@@ -203,41 +223,52 @@ Files baked into the image at build time:
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the release-matched `herdr` skill to both user-level skill directories.
 
-Claude Code gets both Playwright and context7 through official marketplace plugins installed at build time — no `claude mcp add` registration remains. The playwright plugin launches `@playwright/mcp@latest` with no flags; the flags the agents need in a container (`--headless --browser=chromium --no-sandbox`) are supplied to Claude Code as `PLAYWRIGHT_MCP_*` env vars in `claude-settings.json`. Codex keeps a local MCP registration pinned via `PLAYWRIGHT_MCP_VERSION`, which `codex-config.toml` mirrors and Renovate raises, because the image installs the Chromium revision that pinned version's `playwright` core requires — deriving the browser from the pin keeps that pair consistent across rebuilds. Because the plugin resolves `@latest` per session, Claude Code can briefly outrun the baked Chromium right after an upstream release, until the image is rebuilt and re-pulled. See `AGENTS.md`. The working directory is `/workspace`. MCP tool definitions are deferred and discovered on demand — [tool search](https://code.claude.com/docs/en/mcp#scale-with-mcp-tool-search) is on by default, so adding servers costs almost no context at session start.
+Claude Code gets context7 and language intelligence from official marketplace
+plugins. Playwright uses a user-scoped registration in `~/.claude.json`, created
+at build time, so it is available in every project
+([MCP scope](https://code.claude.com/docs/en/mcp#user-scope)). Both agents use
+`PLAYWRIGHT_MCP_VERSION`; `codex-config.toml` mirrors that pin and Renovate
+updates the two source locations together. CI checks the source pin, and the
+image build checks both installed registrations. The Chromium revision comes
+from the pinned server's Playwright dependency
+([Playwright browsers](https://playwright.dev/docs/browsers)).
 
-### Model & effort (Codex)
+`headless_shell` on `PATH` points to that browser for the bundled Mermaid
+renderer. Documentation directory scans skip `.git`, `node_modules`, `.venv`,
+and `__pycache__`; explicitly selected files or roots are still inspected.
+The working directory is `/workspace`.
 
-No model is pinned. Codex selects an available model for the task. Reasoning effort is left at the model default for ordinary turns and raised to `xhigh` only inside plan mode via `plan_mode_reasoning_effort`, so the depth is spent where it pays off instead of on every routine edit. Choose a model or reasoning level for one task with `/model` or `/reasoning` ([Codex developer commands](https://learn.chatgpt.com/docs/developer-commands)).
+### Models, effort, and operating instructions
 
-GPT‑5.6 provides three Codex model tiers ([Codex model guidance](https://learn.chatgpt.com/docs/models)):
+Neither CLI pins a model. Select a model for the current task with `/model`
+([Codex commands](https://learn.chatgpt.com/docs/developer-commands),
+[Claude model configuration](https://code.claude.com/docs/en/model-config)).
+Codex sets `plan_mode_reasoning_effort = "xhigh"`; ordinary Codex turns and
+Claude Code sessions leave effort unspecified
+([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
+[Claude effort](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
 
-- **Sol** (`gpt-5.6`) — complex, open-ended, or high-value work that needs analysis, judgment, and polish.
-- **Terra** (`gpt-5.6-terra`) — everyday work that benefits from strong reasoning and tool use without Sol's full depth.
-- **Luna** (`gpt-5.6-luna`) — clear, repeatable, or high-volume work with explicit success criteria.
+The shared operating principles support Astra and Claude Fable 5.1 workflows:
+finish authorized work, resolve routine choices, reuse prior authorization,
+delegate independent tasks, give brief progress updates, and keep testing
+proportional to the change. Review-only requests produce findings without
+edits. These policies follow the models' guidance on autonomy, delegation,
+completion, and validation
+([Astra guidance](https://developers.openai.com/api/docs/guides/latest-model),
+[Fable 5.1 guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)).
 
-Use **Max** only when a single task needs more reasoning than `xhigh`. Use **Ultra** only when a complex task divides into meaningful parallel work, because Ultra adds subagents rather than only increasing single-agent reasoning ([Max and Ultra](https://learn.chatgpt.com/docs/models#know-when-to-use-max-or-ultra)).
+Codex memory generation and injection are disabled, and `history.persistence`
+is `none`; this setting controls `history.jsonl`, not all session storage
+([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference)).
+Claude auto memory is disabled and `cleanupPeriodDays` is `3`
+([Claude settings](https://code.claude.com/docs/en/settings)). Persistent
+instructions belong in `operating-principles.md`.
 
-Fast mode is off by default; enable it per session only when lower latency justifies higher credit consumption ([Codex Fast mode](https://learn.chatgpt.com/docs/agent-configuration/speed#fast-mode)). Memories and transcript persistence are off because the pod is disposable; persistent instructions belong in `operating-principles.md`.
-
-Codex CLI is installed unpinned from npm. GPT‑5.6 requires Codex CLI 0.144.0 or newer ([GPT‑5.6 availability](https://help.openai.com/en/articles/20001354-gpt-56-in-chatgpt)), and the image build rejects configuration keys unsupported by the installed CLI.
-
-### Model & effort (Claude Code)
-
-No model is pinned, so the account default applies. Choose per task with `/model` ([alias table](https://code.claude.com/docs/en/model-config#model-aliases): `fable`, `opus`, `sonnet`, `haiku`, `best`):
-
-- **Sonnet 5** (`sonnet`) — routine edits and well-scoped tasks.
-- **Opus 5** (`opus`) — ambiguity, unfamiliar domains, subtle bugs.
-- **Fable 5** (`fable`) — the multi-day unattended sessions this pod exists for. Describe the outcome, not the steps; skip verification reminders.
-
-See [Choosing a Claude model and effort level](https://claude.com/blog/claude-model-and-effort-level-in-claude-code): a wrong answer despite full context means pick a larger model; a skipped file or abandoned refactor means raise effort.
-
-No effort level is pinned either, so each model's default (`high`) applies. Raise it per task with `/effort` ([Adjust effort level](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
-
-> **Why it is not pinned** — Claude Code has no counterpart to Codex's `plan_mode_reasoning_effort`. Effort here is either global (`effortLevel` / `env.CLAUDE_CODE_EFFORT_LEVEL`) or per session/turn (`/effort`); it cannot be scoped to a permission mode, and no hook can set it. Pinning `xhigh` to deepen planning would raise every routine edit too, so the setting was removed. Plan mode does carry a *model* override for the rest of the session — pick one with `/model` while in plan mode — but there is no effort equivalent.
-
-Auto memory is off (`autoMemoryEnabled: false`), matching Codex's `memories = false`. It is machine-local under `~/.claude/projects/<project>/memory/`, does not outlive the pod, and `cleanupPeriodDays: 3` sweeps that tree ([auto memory](https://code.claude.com/docs/en/memory#auto-memory)). Persistent instructions belong in `operating-principles.md`.
-
-Claude Code is installed unpinned from the official installer, which satisfies the version floors: Fable 5 needs v2.1.170+, Sonnet 5 v2.1.197+, Opus 5 v2.1.219+.
+The release build refreshes the unpinned CLI installers and latest stable
+kubectl. Inspect installed versions in the build log or with each CLI's version
+command. kubectl follows upstream stable rather than a cluster-specific pin;
+check its [supported version skew](https://kubernetes.io/releases/version-skew-policy/#kubectl)
+when connecting to an older cluster.
 
 ### Terminal integration (tmux and Herdr)
 
@@ -262,13 +293,13 @@ ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reache
 
 ### Continuous integration
 
-`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`, checks the Playwright pin and flags, and runs focused launcher and documentation-scope tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
 
 Renovate runs weekly on Monday and automerges minor, patch, and digest updates. It delegates the merge to GitHub via [`platformAutomerge`](https://docs.renovatebot.com/configuration-options/#platformautomerge) so a PR lands as soon as it is mergeable, instead of waiting a full week for the next Renovate run to merge it. The active [`main` repository ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) requires `validate-config` and `build`, so GitHub merges Renovate PRs only after both CI jobs pass against the current branch tip. The ruleset lists the Repository admin role in its [bypass list](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository#granting-bypass-permissions-for-your-ruleset), so the maintainer can push to `main` directly; Renovate's PRs stay behind the required checks.
 
 ### Via GitHub Actions
 
-Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, picking up the latest base image and tools along with whatever Renovate merged earlier that morning. Each architecture builds on its own native runner — `linux/amd64` on `ubuntu-latest`, `linux/arm64` on `ubuntu-24.04-arm` — and a merge job joins the two digests into the `:latest` manifest, then prunes the GHCR package back to it. Emulating arm64 under QEMU is not an option here; see `AGENTS.md`. To build off-schedule:
+Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, refreshing unpinned tools without the build cache and using the base-image digest tracked by Renovate. Each architecture builds on its own native runner — `linux/amd64` on `ubuntu-latest`, `linux/arm64` on `ubuntu-24.04-arm` — and a merge job joins the two digests into the `:latest` manifest, then prunes the GHCR package back to it. Emulating arm64 under QEMU is not an option here; see `AGENTS.md`. To build off-schedule:
 
 1. Go to the **Actions** tab in the repository
 2. Select **Build and Push Container Image** workflow
@@ -276,14 +307,13 @@ Container images are built and pushed via GitHub Actions every Monday at 06:00 K
 
 ### Local Build (Podman)
 
-Build and push multi-architecture images manually:
+Run the smoke test on a native arm64 host:
 
 ```bash
-# Build for linux/amd64 and linux/arm64
-podman build --no-cache --force-rm \
-  --platform linux/amd64,linux/arm64 \
-  --manifest ghcr.io/kim-tae-kyung/code-devcontainer:latest .
-
-# Push to registry
-podman manifest push --rm ghcr.io/kim-tae-kyung/code-devcontainer:latest
+podman build --platform linux/arm64 -t code-devcontainer:local .
 ```
+
+Use `linux/amd64` on a native amd64 host. Publish the combined image through
+the release workflow so each architecture runs its Chromium check natively.
+For a local refresh of unpinned tools, add `--no-cache`
+([Podman build options](https://docs.podman.io/en/latest/markdown/podman-build.1.html)).

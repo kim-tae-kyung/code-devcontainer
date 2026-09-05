@@ -19,34 +19,33 @@ allowed-tools: Bash(codex *)
 Run the Codex CLI non-interactively with `codex exec` and report what it
 returns. Codex runs as a separate agent with its own ChatGPT login. It does
 not see this conversation, so every call must carry the full context it needs.
-Codex prints only its final message to stdout; progress goes to stderr.
+Codex prints its final message to stdout and progress to stderr
+([non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode)).
 
-Standing rules for every call:
+Standing rules for every call, using the
+[Codex CLI options](https://learn.chatgpt.com/docs/cli/reference):
 
 - Pass `timeout: 600000` to the Bash tool. Reviews and multi-step tasks run
   for minutes.
-- Write the whole command on one line. The image pre-approves a command that
-  starts with `codex ` and contains none of `;`, `&`, `|`, `>`, a backtick,
-  `$(`, `<(`, `--dangerously`, or a newline. Backslash line continuations count as newlines. Keep
-  those characters out of the prompt text too: use commas and periods, and
-  write "and" instead of `&`.
+- Quote prompts and paths as shell arguments. Use a single-quoted prompt when
+  possible; for literal apostrophes or long prompts, use a uniquely named
+  temporary prompt file and `codex exec ... - < /tmp/prompt-file`.
 - Do not pass `-s`. Codex applies the sandbox policy from its config
-  (`sandbox_mode`), which this image sets to full access because the
-  disposable pod is the security boundary and Codex's own Linux sandbox
-  cannot start inside it. State the intent in the prompt instead: say "do not
-  modify any files" unless the user asked Codex to change files. Never pass
+  (`sandbox_mode`), which this image sets to full access for trusted IaaS
+  development. State the authorized scope in the prompt: say "do not modify
+  any files" for questions and reviews. Never pass
   `--dangerously-bypass-approvals-and-sandbox`.
 - Always pass `--ephemeral` (no session files in a disposable pod) and
   `--skip-git-repo-check` (the working directory may not be a git repository).
-- Give the prompt in single quotes as the last argument. Never pipe into
-  `codex`. For a prompt that needs those forbidden characters or several
-  paragraphs, write it to a file under `/tmp` with the Write tool, pass `-`
-  as the prompt, and add `< /tmp/that-file` to the command.
+- In plan mode, use an existing plan file or pass the plan in the prompt.
+  Create a temporary file only when the active mode permits that write.
 - Do not pin a model unless the user names one; then add `-m <model>`.
-- If the command exits non-zero, report the error and stop. Do not retry in
-  a loop.
+- On a recoverable read-only failure, diagnose the cause and retry once.
+  Before retrying an editing task, inspect partial changes to avoid repeating
+  completed work. Do not retry authentication failures or loop on errors.
 - Report Codex's final message verbatim, then add at most three lines of your
-  own assessment. Do not act on Codex's suggestions unless the user asks.
+  own assessment. Apply relevant findings when the original request includes
+  implementation; keep review-only requests read-only.
 
 ## Ask or delegate
 
@@ -65,9 +64,9 @@ changed.
 
 Plan review is read-only analysis and is allowed in plan mode: Codex reads
 the plan file and the repository, is told not to modify anything, and prints
-a report. Nothing is written. Give Codex the absolute path of the plan file
-(the plan file of the current session, or a path the user named). If the plan
-exists only in the conversation, write it to `/tmp/codex-plan.md` first.
+a report. Give Codex the absolute path of an existing plan file, or include
+its text in the prompt when the plan exists only in the conversation. Follow
+the active mode's write restrictions for any temporary prompt file.
 
 ```bash
 codex exec --ephemeral --skip-git-repo-check 'Review the implementation plan at /home/node/.claude/plans/example.md. Another agent wrote it for the repository in the current directory. Read the plan and the repository as needed. Do not modify any files. Report, in this order: a verdict of approve, approve with changes, or rework. Wrong or unverified assumptions, each with the file or command that disproves it. Missing steps, ordering problems, and risks. Anything simpler that meets the same goal. Be concrete and cite paths. Do not rewrite the plan.'
@@ -103,4 +102,6 @@ Present the findings verbatim, then your assessment.
 
 - If Codex reports that it is not logged in, tell the user to run `codex`
   once in the pod to sign in. Do not attempt to log in yourself.
-- On rate-limit or network errors, report them and stop.
+- Retry a transient network or rate-limit failure once after any supplied retry
+  delay. If it persists, report the blocker and finish independent authorized
+  work. Do not treat a failed delegation as completion of the original task.

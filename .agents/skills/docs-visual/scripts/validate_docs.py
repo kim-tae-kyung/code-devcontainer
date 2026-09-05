@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import fnmatch
+import os
 import re
 import sys
 from collections import Counter
@@ -14,6 +15,7 @@ from urllib.parse import unquote
 
 
 MARKDOWN_EXTENSIONS = {".md", ".mdx", ".markdown"}
+IGNORED_DIRECTORIES = {".git", "node_modules", ".venv", "__pycache__"}
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 ATX_HEADING_PATTERN = re.compile(r"^(#{1,6})\s+(.+?)\s*#*\s*$")
 SETEXT_HEADING_PATTERN = re.compile(r"^[ \t]{0,3}(?:=+|-+)[ \t]*$")
@@ -77,11 +79,15 @@ def parse_args() -> argparse.Namespace:
 def markdown_files(root: Path) -> list[Path]:
     if root.is_file():
         return [root] if root.suffix.lower() in MARKDOWN_EXTENSIONS else []
-    return sorted(
-        path
-        for path in root.rglob("*")
-        if path.is_file() and path.suffix.lower() in MARKDOWN_EXTENSIONS
-    )
+    files = []
+    for directory, subdirs, names in os.walk(root):
+        subdirs[:] = [name for name in subdirs if name not in IGNORED_DIRECTORIES]
+        files.extend(
+            Path(directory) / name
+            for name in names
+            if Path(name).suffix.lower() in MARKDOWN_EXTENSIONS
+        )
+    return sorted(files)
 
 
 def read_utf8(path: Path) -> tuple[str | None, str | None]:

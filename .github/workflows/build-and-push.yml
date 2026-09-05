@@ -69,9 +69,10 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Scoped per platform so the two runners do not overwrite each other.
-          cache-from: type=gha,scope=${{ env.PLATFORM_SLUG }}
-          cache-to: type=gha,mode=max,scope=${{ env.PLATFORM_SLUG }}
+          # Refresh unpinned tools on every release, including scheduled rebuilds.
+          # https://docs.docker.com/build/cache/invalidation/#run-instructions
+          no-cache: true
+          pull: true
           outputs: type=image,name=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
 
       - name: Export digest

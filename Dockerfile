@@ -77,6 +77,9 @@ RUN set -e; \
   npx -y "playwright@${PLAYWRIGHT_CORE}" install --with-deps chromium; \
   npx -y "playwright@${PLAYWRIGHT_CORE}" screenshot --browser=chromium about:blank /tmp/launch-check.png; \
   rm /tmp/launch-check.png; \
+  mapfile -t CHROMIUM_SHELLS < <(find "${PLAYWRIGHT_BROWSERS_PATH}" -type f -name chrome-headless-shell); \
+  test "${#CHROMIUM_SHELLS[@]}" -eq 1; \
+  sudo ln -s "${CHROMIUM_SHELLS[0]}" /usr/local/bin/headless_shell; \
   sudo apt-get clean; \
   sudo rm -rf /var/lib/apt/lists/*
 
@@ -107,29 +110,36 @@ COPY --chown=node:node .agents/skills/ ${HOME}/.agents/skills/
 # Vendor the shared capture-demo runtime and exercise both render paths.
 RUN cd ${CAPTURE_DEMO_RUNTIME_DIR} && npm ci --omit=dev && npm test
 
+# Install the latest stable kubectl for the target architecture and verify it.
+# https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+RUN KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)" && \
+  curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl" -o /tmp/kubectl && \
+  curl -fsSL "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/${TARGETARCH}/kubectl.sha256" -o /tmp/kubectl.sha256 && \
+  echo "$(cat /tmp/kubectl.sha256)  /tmp/kubectl" | sha256sum --check && \
+  sudo install -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
+  rm /tmp/kubectl /tmp/kubectl.sha256
+
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # Install Codex CLI
 RUN npm install -g @openai/codex
 
-# Install Claude Code plugins: the code-intelligence plugins activate the LSP
-# tool for the language servers installed above (gopls, pyright,
-# typescript-language-server, rust-analyzer); context7 (Upstash's hosted HTTP
-# server — no npx process per session) and playwright replace local MCP
-# registrations, so no `claude mcp add` runs at build. The playwright plugin
-# launches `@playwright/mcp@latest` with no flags; the flags the old MCP
-# registration passed (--headless --browser=chromium --no-sandbox) come from
-# PLAYWRIGHT_MCP_* env vars in claude-settings.json instead. Installing at
-# build time bakes the plugin cache into the image so sessions need no
-# marketplace clone at pod start.
+# Install code intelligence and hosted documentation plugins.
+# https://code.claude.com/docs/en/discover-plugins
 RUN claude plugin marketplace add anthropics/claude-plugins-official && \
   claude plugin install gopls-lsp@claude-plugins-official && \
   claude plugin install pyright-lsp@claude-plugins-official && \
   claude plugin install typescript-lsp@claude-plugins-official && \
   claude plugin install rust-analyzer-lsp@claude-plugins-official && \
-  claude plugin install context7@claude-plugins-official && \
-  claude plugin install playwright@claude-plugins-official
+  claude plugin install context7@claude-plugins-official
+
+# Both agents use the same server and the Chromium installed for that pin.
+# User scope makes the registration available in every project.
+# https://code.claude.com/docs/en/mcp#user-scope
+RUN claude mcp add --transport stdio --scope user playwright -- \
+  npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" \
+  --headless --browser=chromium --no-sandbox
 
 # Install the latest stable Herdr release. Its installer selects the native
 # Linux asset and verifies the release-published SHA-256 checksum.
@@ -146,12 +156,16 @@ RUN herdr integration install claude && \
   install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
   rm /tmp/herdr-SKILL.md
 
-# Fail the build if a server does not load. The pinned check covers Codex's
-# playwright server and pre-warms the npx cache. The `@latest` checks (the
-# Claude Code playwright plugin, and context7 for Codex) are re-resolved per
-# session, so they cover the build only.
+# Validate the actual registrations after integration installers have run.
+COPY --chown=node:node scripts/check_playwright_pin.py /tmp/check_playwright_pin.py
+RUN python3 /tmp/check_playwright_pin.py \
+  --expected-version "${PLAYWRIGHT_MCP_VERSION}" \
+  --codex-config ${HOME}/.codex/config.toml \
+  --claude-config ${HOME}/.claude.json && \
+  rm /tmp/check_playwright_pin.py
+
+# Load the pinned browser server and pre-warm its npx cache.
 RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
-  npx -y @playwright/mcp@latest --version && \
   npx -y @upstash/context7-mcp --version
 
 # Smoke test
@@ -165,23 +179,13 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
   codex exec --help >/dev/null && codex exec review --help >/dev/null && \
   codex features list | grep -E '^image_generation +stable +true' >/dev/null && \
-  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash")' ${HOME}/.claude/settings.json >/dev/null && \
-  jq -e '.permissions.allow | index("Bash(codex *)")' ${HOME}/.claude/settings.json >/dev/null && \
-  CODEX_HOOK="$(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[0].command' ${HOME}/.claude/settings.json)" && \
-  jq -cn '{tool_input:{command:"codex exec -s read-only --ephemeral x"}}' | sh -c "$CODEX_HOOK" | grep -q '"permissionDecision":"allow"' && \
-  jq -cn '{tool_input:{command:"codex exec -C /tmp $imagegen make a cat"}}' | sh -c "$CODEX_HOOK" | grep -q '"permissionDecision":"allow"' && \
-  jq -cn '{tool_input:{command:"codex exec - < /tmp/prompt.md"}}' | sh -c "$CODEX_HOOK" | grep -q '"permissionDecision":"allow"' && \
-  jq -cn '{tool_input:{command:"codex exec x | head"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
-  jq -cn '{tool_input:{command:"codex exec \"$(id)\""}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
-  jq -cn '{tool_input:{command:"codex exec x <(touch /tmp/e)"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
-  jq -cn '{tool_input:{command:"codex exec --dangerously-bypass-approvals-and-sandbox x"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
-  jq -cn '{tool_input:{command:"ls"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
+  jq -e '.permissions.defaultMode == "bypassPermissions"' ${HOME}/.claude/settings.json >/dev/null && \
   claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
   herdr --version && herdr --help >/dev/null && \
   herdr integration status | grep -q '^claude: current ' && \
   herdr integration status | grep -q '^codex: current ' && \
-  jq -e '.hooks.PreToolUse[] | select(.matcher == "mcp__plugin_playwright_playwright__.*")' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \
+  kubectl version --client && headless_shell --version && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/gopls-lsp && \
@@ -189,7 +193,6 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/typescript-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/context7 && \
-  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/playwright && \
   command -v pyright-langserver && \
   node --version && python3 --version && \
   tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \

@@ -1,4 +1,4 @@
-# Full autonomy: the disposable, isolated k8s pod is the security boundary.
+# Full autonomy for trusted IaaS development, including cluster administration.
 # https://developers.openai.com/codex/agent-approvals-security
 approval_policy = "never"
 sandbox_mode = "danger-full-access"

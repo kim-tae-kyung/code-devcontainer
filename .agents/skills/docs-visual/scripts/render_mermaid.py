@@ -21,6 +21,7 @@ from pathlib import Path
 MERMAID_CLI_PACKAGE = "@mermaid-js/mermaid-cli@11.16.0"
 MERMAID_CLI_VERSION = "11.16.0"
 MARKDOWN_EXTENSIONS = {".md", ".mdx", ".markdown"}
+IGNORED_DIRECTORIES = {".git", "node_modules", ".venv", "__pycache__"}
 FENCE_PATTERN = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})(.*)$")
 
 
@@ -75,11 +76,13 @@ def markdown_files(targets: list[Path]) -> list[Path]:
                 raise RuntimeError(f"not a Markdown target: {target}")
             files.add(resolved)
         elif resolved.is_dir():
-            files.update(
-                path.resolve()
-                for path in resolved.rglob("*")
-                if path.is_file() and path.suffix.lower() in MARKDOWN_EXTENSIONS
-            )
+            for directory, subdirs, names in os.walk(resolved):
+                subdirs[:] = [name for name in subdirs if name not in IGNORED_DIRECTORIES]
+                files.update(
+                    (Path(directory) / name).resolve()
+                    for name in names
+                    if Path(name).suffix.lower() in MARKDOWN_EXTENSIONS
+                )
         else:
             raise RuntimeError(f"target does not exist: {target}")
     return sorted(files)

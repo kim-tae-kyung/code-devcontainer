@@ -157,7 +157,8 @@ before final validation.
 
 At minimum:
 
-1. Run repository-specific tests and, in a Git worktree, `git diff --check`.
+1. Run checks relevant to the changed documentation, required repository gates,
+   and, in a Git worktree, `git diff --check`.
 2. Validate Markdown style in the repository's accepted configuration.
 3. Check local links, anchors, image references, and scoped orphan assets.
 4. If the selected scope contains Mermaid, read
