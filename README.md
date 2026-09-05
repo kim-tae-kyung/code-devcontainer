@@ -17,6 +17,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
 - **Documentation workflow**: the `docs-visual` skill is installed globally for Codex to research, write, audit, visualize, and validate technical documentation.
+- **Codex from Claude Code**: two model-invocable Claude Code skills, `codex` (delegate a task, review a plan, or run Codex's native code review) and `codex-imagegen` (raster images through Codex's bundled `imagegen` skill), both driving `codex exec` non-interactively — no plugin and no MCP bridge.
 
 ## Usage
 
@@ -127,6 +128,46 @@ node ~/.claude/skills/capture-demo/frames_to_gif.mjs frames/ --out demo.gif --de
 Generic page-open images are not accepted as evidence for distinct procedures.
 Existing outputs are not overwritten unless `--force` is supplied.
 
+### Delegating to Codex from Claude Code
+
+Two user-level skills let a Claude Code session hand work to the Codex CLI in
+the same pod through [`codex exec`](https://learn.chatgpt.com/docs/non-interactive-mode).
+Claude invokes them from ordinary language ("ask codex", "codex한테 이 plan
+리뷰 시켜줘", "imagegen으로 인포그래픽 만들어줘"); `/codex` and
+`/codex-imagegen` also work.
+
+- `codex` — delegate a task or question (told not to modify files unless the
+  user asks Codex to edit), review a plan in plan mode (Codex reads the plan
+  file by path and prints a report), or run Codex's native code review with
+  `codex exec ... review --uncommitted`, `--base <branch>`, or
+  `--commit <sha>`; a custom review prompt is its own target and cannot be
+  combined with those flags. Codex's reply is returned verbatim, followed by
+  a short assessment.
+- `codex-imagegen` — generate or edit PNGs through Codex's bundled `imagegen`
+  skill ([image generation](https://learn.chatgpt.com/docs/image-generation):
+  built-in `image_gen` tool, `gpt-image-2`, ChatGPT login, no
+  `OPENAI_API_KEY`). The skill names an absolute destination inside the
+  project, Codex copies the result there from `$CODEX_HOME/generated_images/`,
+  and the skill checks the PNG header and views the image before reporting
+  the path and dimensions.
+
+Every call passes `--ephemeral` (no Codex session files) and
+`--skip-git-repo-check` (`/workspace` is often not a repository), and none
+passes `-s`: Codex's Linux sandbox cannot start inside an unprivileged
+container, so the calls run under the configured `danger-full-access` policy
+described under [Security model](#security-model). Codex needs
+its own login in the pod (`codex login status`); the Kubernetes launcher copies
+`~/.codex/auth.json` from the host.
+
+`claude-settings.json` allows `Bash(codex *)` and adds a `PreToolUse` hook that
+pre-approves a single-line command starting with `codex ` (no `;`, `&`, `|`,
+`>`, backticks, `$(`, `<(`, or `--dangerously`) so plan review runs inside plan mode without a
+prompt; see `AGENTS.md`. Neither OpenAI's
+[Codex plugin for Claude Code](https://github.com/openai/codex-plugin-cc) nor
+`codex mcp-server` is used: the plugin would add a second review path with its
+own job state, and the MCP server prints a deprecation notice in Codex CLI
+0.153.
+
 ### Technical documentation
 
 Codex discovers `docs-visual` from `~/.agents/skills/docs-visual`. Like
@@ -156,7 +197,7 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `tmux.conf` → `~/.tmux.conf`
 - `vimrc` → `~/.vimrc`
-- `.claude/skills/` → `~/.claude/skills/` (agent skills, e.g. `capture-demo`)
+- `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `capture-demo`, `docs-visual`)
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and

@@ -159,6 +159,23 @@ RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
   test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   grep -q '^name: herdr$' ${HOME}/.claude/skills/herdr/SKILL.md && \
   grep -q '^name: herdr$' ${HOME}/.agents/skills/herdr/SKILL.md && \
+  grep -q '^name: codex$' ${HOME}/.claude/skills/codex/SKILL.md && \
+  grep -q '^name: codex-imagegen$' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
+  ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex/SKILL.md && \
+  ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
+  codex exec --help >/dev/null && codex exec review --help >/dev/null && \
+  codex features list | grep -Eq '^image_generation +stable +true' && \
+  jq -e '.hooks.PreToolUse[] | select(.matcher == "Bash")' ${HOME}/.claude/settings.json >/dev/null && \
+  jq -e '.permissions.allow | index("Bash(codex *)")' ${HOME}/.claude/settings.json >/dev/null && \
+  CODEX_HOOK="$(jq -r '.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[0].command' ${HOME}/.claude/settings.json)" && \
+  jq -cn '{tool_input:{command:"codex exec -s read-only --ephemeral x"}}' | sh -c "$CODEX_HOOK" | grep -q '"permissionDecision":"allow"' && \
+  jq -cn '{tool_input:{command:"codex exec -C /tmp $imagegen make a cat"}}' | sh -c "$CODEX_HOOK" | grep -q '"permissionDecision":"allow"' && \
+  jq -cn '{tool_input:{command:"codex exec - < /tmp/prompt.md"}}' | sh -c "$CODEX_HOOK" | grep -q '"permissionDecision":"allow"' && \
+  jq -cn '{tool_input:{command:"codex exec x | head"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
+  jq -cn '{tool_input:{command:"codex exec \"$(id)\""}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
+  jq -cn '{tool_input:{command:"codex exec x <(touch /tmp/e)"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
+  jq -cn '{tool_input:{command:"codex exec --dangerously-bypass-approvals-and-sandbox x"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
+  jq -cn '{tool_input:{command:"ls"}}' | sh -c "$CODEX_HOOK" | { ! grep -q allow; } && \
   claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
   herdr --version && herdr --help >/dev/null && \
   herdr integration status | grep -q '^claude: current ' && \

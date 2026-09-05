@@ -36,7 +36,8 @@
       "mcp__plugin_context7_context7",
       "mcp__plugin_playwright_playwright",
       "Bash(git *)",
-      "Bash(gh *)"
+      "Bash(gh *)",
+      "Bash(codex *)"
     ],
     "defaultMode": "auto"
   },
@@ -48,6 +49,16 @@
           {
             "type": "command",
             "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"allow\",\"permissionDecisionReason\":\"Playwright MCP is pre-approved in this image\"}}'",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r 'if (.tool_input.command // \"\") | test(\"^codex (?!.*--dangerously)(?:[^\\\\n;&|>`$<]|\\\\$(?!\\\\()|<(?!\\\\())*$\") then {hookSpecificOutput:{hookEventName:\"PreToolUse\",permissionDecision:\"allow\",permissionDecisionReason:\"codex CLI is pre-approved in this image\"}} | tojson else empty end'",
             "timeout": 5
           }
         ]
