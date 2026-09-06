@@ -16,7 +16,6 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **Terminal multiplexers**: tmux 3.5+ for the existing workflow, plus the latest stable Herdr release with Claude Code and Codex session integrations.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
-- **Documentation workflow**: the `docs-visual` skill is installed globally for Codex to research, write, audit, visualize, and validate technical documentation.
 - **Codex from Claude Code**: two model-invocable Claude Code skills, `codex` (delegate a task, review a plan, or run Codex's native code review) and `codex-imagegen` (raster images through Codex's bundled `imagegen` skill), both driving `codex exec` non-interactively — no plugin and no MCP bridge.
 
 ## Usage
@@ -174,17 +173,6 @@ Review-only requests remain read-only by instruction. When the original request
 includes implementation, Claude can apply relevant findings without a second
 approval. Recoverable failures get one retry, with partial edits checked first.
 
-### Technical documentation
-
-Codex discovers `docs-visual` from `~/.agents/skills/docs-visual`. Like
-`capture-demo`, it is user-invocable only: call it explicitly as `$docs-visual`.
-Asking for a documentation audit or rewrite in ordinary language does not
-activate it, because the skill sets `allow_implicit_invocation: false`.
-
-The skill adds only what the global operating principles do not already state:
-pinned primary evidence for repository behavior, and the **Known Issue** callout
-format.
-
 ## Security model
 
 This image is intended for trusted IaaS development, including administration
@@ -218,7 +206,7 @@ Files baked into the image at build time:
 - `tmux.conf` → `~/.tmux.conf`
 - `vimrc` → `~/.vimrc`
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
-- `.agents/skills/` → `~/.agents/skills/` (Codex skills, e.g. `capture-demo`, `docs-visual`)
+- `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the release-matched `herdr` skill to both user-level skill directories.
@@ -233,9 +221,8 @@ image build checks both installed registrations. The Chromium revision comes
 from the pinned server's Playwright dependency
 ([Playwright browsers](https://playwright.dev/docs/browsers)).
 
-`headless_shell` on `PATH` points to that browser for the bundled Mermaid
-renderer. Documentation directory scans skip `.git`, `node_modules`, `.venv`,
-and `__pycache__`; explicitly selected files or roots are still inspected.
+`headless_shell` on `PATH` points to the installed Chromium headless shell
+([Playwright headless shell](https://playwright.dev/docs/browsers#chromium-headless-shell)).
 The working directory is `/workspace`.
 
 ### Models, effort, and operating instructions
@@ -248,14 +235,22 @@ Claude Code sessions leave effort unspecified
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
 [Claude effort](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
 
-The shared operating principles support Astra and Claude Fable 5.1 workflows:
-finish authorized work, resolve routine choices, reuse prior authorization,
-delegate independent tasks, give brief progress updates, and keep testing
-proportional to the change. Review-only requests produce findings without
-edits. These policies follow the models' guidance on autonomy, delegation,
-completion, and validation
-([Astra guidance](https://developers.openai.com/api/docs/guides/latest-model),
-[Fable 5.1 guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)).
+The shared operating principles stay under 200 words. They define language,
+authorized scope, execution, documentation, and communication; this README
+holds the model-specific rationale:
+
+- For GPT-6 Astra, the instructions reuse prior authorization, resolve routine
+  choices, explain skill blockers, delegate bounded tasks, and limit repeated
+  verification to new evidence
+  ([Astra prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra#prompting-best-practices)).
+- For Claude Fable 5.1, the instructions require task completion, targeted
+  edits, proportional tests, independent tool-call batching, brief progress
+  updates, and preservation of goals and unfinished work across compaction
+  ([Fable 5.1 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)).
+
+Review-only requests produce findings without edits. Durable documentation
+uses official sources and describes current behavior. Replies use concise,
+plain language, with lists or tables when helpful.
 
 Codex memory generation and injection are disabled, and `history.persistence`
 is `none`; this setting controls `history.jsonl`, not all session storage
@@ -293,7 +288,7 @@ ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reache
 
 ### Continuous integration
 
-`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`, checks the Playwright pin and flags, and runs focused launcher and documentation-scope tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`, checks the Playwright pin and flags, and runs focused launcher and browser-pin tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
 
 Renovate runs weekly on Monday and automerges minor, patch, and digest updates. It delegates the merge to GitHub via [`platformAutomerge`](https://docs.renovatebot.com/configuration-options/#platformautomerge) so a PR lands as soon as it is mergeable, instead of waiting a full week for the next Renovate run to merge it. The active [`main` repository ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) requires `validate-config` and `build`, so GitHub merges Renovate PRs only after both CI jobs pass against the current branch tip. The ruleset lists the Repository admin role in its [bypass list](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository#granting-bypass-permissions-for-your-ruleset), so the maintainer can push to `main` directly; Renovate's PRs stay behind the required checks.
 

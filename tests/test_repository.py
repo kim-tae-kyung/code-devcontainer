@@ -1,6 +1,5 @@
-"""Regression checks for launcher behavior, browser pins, and documentation scope."""
+"""Regression checks for launcher behavior and browser pins."""
 
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -11,14 +10,6 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-
-
-def load_script(name, path):
-    spec = importlib.util.spec_from_file_location(name, ROOT / path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[name] = module
-    spec.loader.exec_module(module)
-    return module
 
 
 class LauncherTests(unittest.TestCase):
@@ -111,26 +102,6 @@ class PlaywrightPinTests(unittest.TestCase):
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Claude Code Playwright registration", result.stderr)
-
-
-class DocumentationScopeTests(unittest.TestCase):
-    def test_generated_subtrees_are_skipped_but_explicit_targets_work(self):
-        base = ".agents/skills/docs-visual/scripts/"
-        checker = load_script("docs_checker", base + "validate_docs.py")
-        renderer = load_script("docs_renderer", base + "render_mermaid.py")
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory).resolve()
-            owned = root / ".agents" / "guide.md"
-            owned.parent.mkdir()
-            owned.write_text("# Guide\n")
-            for excluded in (".git", "node_modules", ".venv", "__pycache__"):
-                (root / excluded).mkdir()
-                (root / excluded / "README.md").write_text("# Dependency\n")
-            for scan in (checker.markdown_files, lambda path: renderer.markdown_files([path])):
-                self.assertEqual(scan(root), [owned])
-                selected = root / "node_modules" / "README.md"
-                self.assertEqual(scan(selected), [selected])
-                self.assertEqual(scan(selected.parent), [selected])
 
 
 if __name__ == "__main__":

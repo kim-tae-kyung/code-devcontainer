@@ -169,8 +169,7 @@ RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
   npx -y @upstash/context7-mcp --version
 
 # Smoke test
-RUN test -f ${HOME}/.agents/skills/docs-visual/SKILL.md && \
-  test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
+RUN test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   grep -q '^name: herdr$' ${HOME}/.claude/skills/herdr/SKILL.md && \
   grep -q '^name: herdr$' ${HOME}/.agents/skills/herdr/SKILL.md && \
   grep -q '^name: codex$' ${HOME}/.claude/skills/codex/SKILL.md && \
