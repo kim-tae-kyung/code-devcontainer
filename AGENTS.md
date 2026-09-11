@@ -67,6 +67,13 @@ Herdr installs its session hooks after the baked settings. The smoke test
 checks that its Claude and Codex integrations are current and that Claude's
 `SessionStart` hook exists. The settings contain no custom approval hooks.
 
+The official Herdr skill tracks `master` independently of the binary version.
+Keep its remote `ADD` so upstream changes invalidate cached skill layers, and
+install the same downloaded file into both agents' user-level skill directories.
+Do not replace it with the release-matched `herdr --skill` output. Version skew
+is intentional; the installed CLI remains the authority for supported commands
+([official skill](https://github.com/herdrdev/herdr/blob/master/skills/herdr/SKILL.md)).
+
 The Claude `codex` and `codex-imagegen` skills use `codex exec` with
 `--ephemeral` and `--skip-git-repo-check`. Keep read-only intent explicit for
 reviews, use proper shell quoting, and inherit the configured sandbox policy

@@ -112,9 +112,46 @@ installs track the stable channel and can be refreshed in a running container
 with `herdr update`.
 
 The image installs Herdr's official Claude Code and Codex integrations for
-native agent-session restoration. It also installs the release-matched `herdr`
-skill for both agents; the skill activates only when Herdr is explicitly
-requested and the agent is running in a Herdr-managed pane (`HERDR_ENV=1`).
+native agent-session restoration. It also installs the latest official `herdr`
+skill from the upstream `master` branch for both agents
+([official skill source](https://github.com/herdrdev/herdr/blob/master/skills/herdr/SKILL.md)).
+The skill activates only when Herdr is explicitly requested and the agent is
+running in a Herdr-managed pane (`HERDR_ENV=1`).
+
+The skill tracks upstream independently of the Herdr binary. Version skew is
+intentional; use the installed `herdr --help` to check available commands.
+Remote `ADD` makes source changes invalidate the skill installation layer even
+when earlier build layers are cached ([Docker cache rules](https://docs.docker.com/build/cache/invalidation/)).
+A failed download, empty file, or missing expected skill header stops the build
+instead of falling back to the binary's bundled copy.
+
+To install or refresh the same official skill on a local machine with Herdr
+installed, run:
+
+```bash
+(
+  set -eu
+  herdr_skill=$(mktemp)
+  trap 'rm -f "$herdr_skill"' EXIT
+  curl -fsSL https://raw.githubusercontent.com/herdrdev/herdr/master/skills/herdr/SKILL.md -o "$herdr_skill"
+  test -s "$herdr_skill"
+  test "$(head -n 1 "$herdr_skill")" = '---'
+  grep -q '^name: herdr$' "$herdr_skill"
+  for skill_root in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
+    install -d "$skill_root/herdr"
+    install -m 0644 "$herdr_skill" "$skill_root/herdr/SKILL.md"
+    cmp "$herdr_skill" "$skill_root/herdr/SKILL.md"
+  done
+  herdr integration install claude
+  herdr integration install codex
+  herdr integration status
+)
+```
+
+Rerun this procedure to refresh local skills and integrations; it does not
+install an automatic updater. The user-level locations make the skill
+available across projects in [Claude Code](https://code.claude.com/docs/en/skills#choose-where-skills-load)
+and [Codex](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
 
 ### Browser Automation (Playwright MCP)
 
@@ -233,7 +270,7 @@ Files baked into the image at build time:
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and
-writes the release-matched `herdr` skill to both user-level skill directories.
+writes the latest upstream `herdr` skill to both user-level skill directories.
 
 Herdr has four explicit settings: skip onboarding (`onboarding = false`), show
 agent labels on pane borders (`ui.show_agent_labels_on_pane_borders = true`),

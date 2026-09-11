@@ -147,14 +147,23 @@ RUN claude mcp add --transport stdio --scope user playwright -- \
 RUN curl -fsSL https://herdr.dev/install.sh | sh
 
 # Install Herdr's native session integrations after both agent configs have
-# reached their final build-time state. The bundled skill is release-matched;
-# install it into the same user-level discovery directories as the other skills.
+# reached their final build-time state.
 RUN herdr integration install claude && \
-  herdr integration install codex && \
+  herdr integration install codex
+
+# Track the official skill independently of the installed Herdr release. Remote
+# ADD checks source changes even when preceding install layers are cached.
+# https://herdr.dev/docs/agent-skill/
+ADD --chown=node:node https://raw.githubusercontent.com/herdrdev/herdr/master/skills/herdr/SKILL.md /tmp/herdr-SKILL.md
+RUN test -s /tmp/herdr-SKILL.md && \
+  test "$(head -n 1 /tmp/herdr-SKILL.md)" = '---' && \
+  grep -q '^name: herdr$' /tmp/herdr-SKILL.md && \
   install -d ${HOME}/.claude/skills/herdr ${HOME}/.agents/skills/herdr && \
-  herdr --skill > /tmp/herdr-SKILL.md && \
   install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.claude/skills/herdr/SKILL.md && \
   install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
+  cmp /tmp/herdr-SKILL.md ${HOME}/.claude/skills/herdr/SKILL.md && \
+  cmp /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
+  sha256sum /tmp/herdr-SKILL.md && \
   rm /tmp/herdr-SKILL.md
 
 # Validate the actual registrations after integration installers have run.
@@ -176,6 +185,7 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   grep -q '^name: herdr$' ${HOME}/.claude/skills/herdr/SKILL.md && \
   grep -q '^name: herdr$' ${HOME}/.agents/skills/herdr/SKILL.md && \
+  cmp ${HOME}/.claude/skills/herdr/SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
   grep -q '^name: codex$' ${HOME}/.claude/skills/codex/SKILL.md && \
   grep -q '^name: codex-imagegen$' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
   ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex/SKILL.md && \
