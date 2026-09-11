@@ -32,6 +32,23 @@ kubectl run "$POD_NAME" \
 echo "Waiting for pod to be ready..."
 kubectl wait --for=condition=Ready "pod/$POD_NAME" ${namespace_flag:+"$namespace_flag"} --timeout=600s
 
+if [ -d "${HOME}/.ssh" ]; then
+    echo "Copying SSH configuration and keys..."
+    kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- install -d -m 700 /home/node/.ssh
+    # Copy into the parent so an existing .ssh directory is merged, not nested.
+    kubectl cp "${HOME}/.ssh" "${POD_NAME}:/home/node/" ${namespace_flag:+"$namespace_flag"}
+    kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
+        'find /home/node/.ssh -type d -exec chmod 700 {} + && find /home/node/.ssh -type f -exec chmod 600 {} +'
+fi
+
+if [ -f "${HOME}/.gitconfig" ]; then
+    echo "Copying Git configuration..."
+    # Stream the contents so a dotfiles symlink also becomes a usable file.
+    kubectl exec -i "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
+        'umask 077; cat > /home/node/.gitconfig' < "${HOME}/.gitconfig"
+    kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- chmod 600 /home/node/.gitconfig
+fi
+
 printf 'Done! Connect:'
 printf ' %q' kubectl exec -it "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- herdr
 printf '\n'

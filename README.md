@@ -24,7 +24,8 @@ A container image for AI-assisted software development, bundling the Anthropic C
 
 Run the launcher on the Kubernetes control-plane host with `kubectl` and `jq`
 available, then connect to the long-lived Pod with `kubectl exec`. The launcher
-creates the Pod, waits for readiness, and prints the connection command
+creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
+`${HOME}/.gitconfig` when present, and prints the connection command
 ([kubectl exec](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/)):
 
 ```bash
@@ -41,7 +42,11 @@ kubectl exec -it devcontainer-<timestamp> -- /bin/bash
 
 Add `-n NAMESPACE` to either command when using a non-default namespace.
 Herdr can run directly under `kubectl exec -it`; an initial Bash session is not
-required.
+required. The image exports `SHELL=/bin/bash`, so Herdr starts new interactive
+panes with Bash ([Herdr terminal defaults](https://herdr.dev/docs/configuration/#terminal-defaults)).
+This image default applies to newly created containers after the updated image
+is published; existing Pods keep their original environment. In an existing
+`sh` pane, run `exec /bin/bash` to switch that pane to Bash.
 
 ### Local container (Docker/Podman)
 
@@ -51,9 +56,16 @@ docker run -it --rm -v "$PWD:/workspace" ghcr.io/kim-tae-kyung/code-devcontainer
 
 ### Authentication
 
-Authenticate inside the running container. The launcher does not read or copy
-host credentials or Git configuration. Set Git identity inside the Pod when
-needed ([Git configuration](https://git-scm.com/docs/git-config)).
+The launcher copies the contents of `${HOME}/.ssh` into `/home/node/.ssh` in the
+new Pod when the source directory exists. Copied directories use mode `700`
+and regular files use mode `600`. It also copies `${HOME}/.gitconfig` to
+`/home/node/.gitconfig` with mode `600`, preserving the launcher's global
+[Git configuration](https://git-scm.com/docs/git-config). Each missing source
+is skipped independently. If copying or permission setup fails, the launcher
+exits with an error before printing the connection command.
+
+Authenticate the GitHub CLI, Claude Code, and Codex inside the running
+container.
 
 ```bash
 # GitHub CLI: https://cli.github.com/manual/gh_auth_login
@@ -227,9 +239,10 @@ Herdr has four explicit settings: skip onboarding (`onboarding = false`), show
 agent labels on pane borders (`ui.show_agent_labels_on_pane_borders = true`),
 use distinct status symbols (`ui.status_indicators = "symbols"`), and send
 notifications through the connected terminal (`ui.toast.delivery = "terminal"`).
-Keys, theme, shell, and other settings use upstream defaults
-([Herdr configuration](https://herdr.dev/docs/configuration/)). No custom tmux
-configuration is baked into the image.
+Keys, theme, and other settings use upstream defaults. Herdr's shell setting
+also remains at its upstream default, which reads the image's `SHELL=/bin/bash`
+environment variable ([Herdr configuration](https://herdr.dev/docs/configuration/)).
+No custom tmux configuration is baked into the image.
 
 Claude Code gets context7 and language intelligence from official marketplace
 plugins. Playwright uses a user-scoped registration in `~/.claude.json`, created
