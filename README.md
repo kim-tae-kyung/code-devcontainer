@@ -13,7 +13,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (both CLIs run the same pinned local MCP server)
   - **context7** — on-demand, up-to-date library/framework documentation (Claude Code uses the official plugin backed by Upstash's hosted HTTP server; Codex runs the local `npx` server)
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, and common networking utilities. The image also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/).
-- **Terminal multiplexers**: tmux 3.5+ for the existing workflow, plus the latest stable Herdr release with Claude Code and Codex session integrations.
+- **Terminal multiplexers**: the latest stable Herdr release as the primary workspace, with Claude Code and Codex session integrations. tmux remains installed with its default settings for optional use and demo capture.
 - **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
 - **Codex from Claude Code**: two model-invocable Claude Code skills, `codex` (delegate a task, review a plan, or run Codex's native code review) and `codex-imagegen` (raster images through Codex's bundled `imagegen` skill), both driving `codex exec` non-interactively — no plugin and no MCP bridge.
@@ -32,9 +32,16 @@ creates the Pod, waits for readiness, and prints the connection command
 # (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
 ./run-k8s-daemon-example.sh
 
-# Connect
+# Connect directly to Herdr
+kubectl exec -it devcontainer-<timestamp> -- herdr
+
+# Optional plain shell
 kubectl exec -it devcontainer-<timestamp> -- /bin/bash
 ```
+
+Add `-n NAMESPACE` to either command when using a non-default namespace.
+Herdr can run directly under `kubectl exec -it`; an initial Bash session is not
+required.
 
 ### Local container (Docker/Podman)
 
@@ -66,26 +73,31 @@ The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
 its API permissions come from your cluster's RBAC, not from the launcher's
 host credentials ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
 
-### Terminal sessions (tmux and Herdr)
+### Terminal sessions (Herdr)
 
-tmux remains available unchanged. Herdr is an opt-in alternative; start it from
-a separate `kubectl exec` connection instead of nesting it inside tmux, so both
-multiplexers can keep their default `Ctrl-b` prefix.
+Use Herdr for interactive work. Start it directly through the Kubernetes
+connection above, or run it from a shell after connecting over SSH or entering
+a local container. Keep tmux and Herdr in separate connections so their default
+`Ctrl-b` prefixes do not conflict.
 
 ```bash
-# Existing workflow
-tmux
-
-# Herdr alternative, from a fresh shell in the project you want to manage
-cd /workspace/my-project
+# From a shell inside the server or container
 herdr
+
+# Optional tmux session, using its default settings
+tmux
 ```
 
 Herdr starts or reattaches to its background session. Press `Ctrl-b q` to
-detach without stopping panes, run `herdr` again to reattach, and use
-`herdr server stop` when you intend to terminate the session and its pane
-processes. Direct installs track the stable channel and can be refreshed in a
-running container with `herdr update`.
+detach without stopping panes. Repeat `kubectl exec -it POD_NAME -- herdr` to
+reattach, or run `herdr` again from a shell. The background server keeps pane
+processes running while the container stays alive. Stopping or replacing the
+container ends those processes; restoring a saved layout or agent conversation
+requires the corresponding state files to survive
+([Herdr session state](https://herdr.dev/docs/session-state/)). Use
+`herdr server stop` to terminate the session and its pane processes. Direct
+installs track the stable channel and can be refreshed in a running container
+with `herdr update`.
 
 The image installs Herdr's official Claude Code and Codex integrations for
 native agent-session restoration. It also installs the release-matched `herdr`
@@ -203,13 +215,21 @@ Files baked into the image at build time:
 - `claude-settings.json` → `~/.claude/settings.json` (Claude Code permissions/behavior)
 - `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP servers)
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
-- `tmux.conf` → `~/.tmux.conf`
+- `herdr-config.toml` → `~/.config/herdr/config.toml`
 - `vimrc` → `~/.vimrc`
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the release-matched `herdr` skill to both user-level skill directories.
+
+Herdr has four explicit settings: skip onboarding (`onboarding = false`), show
+agent labels on pane borders (`ui.show_agent_labels_on_pane_borders = true`),
+use distinct status symbols (`ui.status_indicators = "symbols"`), and send
+notifications through the connected terminal (`ui.toast.delivery = "terminal"`).
+Keys, theme, shell, and other settings use upstream defaults
+([Herdr configuration](https://herdr.dev/docs/configuration/)). No custom tmux
+configuration is baked into the image.
 
 Claude Code gets context7 and language intelligence from official marketplace
 plugins. Playwright uses a user-scoped registration in `~/.claude.json`, created
@@ -265,20 +285,34 @@ command. kubectl follows upstream stable rather than a cluster-specific pin;
 check its [supported version skew](https://kubernetes.io/releases/version-skew-policy/#kubectl)
 when connecting to an older cluster.
 
-### Terminal integration (tmux and Herdr)
+### Terminal integration
 
-The image provides tmux 3.5+ with extended keys, CSI u, escape-sequence passthrough, true color, and OSC 52 clipboard forwarding. These settings preserve Shift+Enter and built-in agent notifications through the normal `Ghostty → kubectl exec -it → pod tmux → CLI` path.
+The primary connection path is `terminal → kubectl exec -it → Herdr → CLI`.
+Herdr's local background server owns its workspaces, tabs, panes, and agent
+terminals. This connection requires no Kubernetes Service or inbound port.
 
-Both CLIs render on the terminal's main screen — no alternate screen — so their output stays in tmux scrollback (`history-limit 100000`): Claude Code via `"tui": "default"`, Codex via `[tui] alternate_screen = "never"` (alt-screen bypasses tmux history; see [openai/codex#8555](https://github.com/openai/codex/pull/8555)).
+Both CLIs retain their main-screen settings: Claude Code uses
+`"tui": "default"`, and Codex uses `[tui] alternate_screen = "never"`
+([Codex alternate-screen behavior](https://github.com/openai/codex/pull/8555)).
 
 The pod explicitly selects Claude Code's `"ghostty"` notification channel and Codex's OSC 9 TUI notifications instead of relying on terminal auto-detection across the remote boundary. Claude Code emits native task-complete and input-needed notifications; Codex enables all supported TUI notification events and emits them regardless of terminal focus ([Claude terminal notifications](https://code.claude.com/docs/en/terminal-config#get-a-terminal-bell-or-notification), [Codex notifications](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications)).
 
-The pod's `tmux.conf` enables escape-sequence passthrough so notifications and progress updates return over the interactive Kubernetes TTY to Ghostty ([Claude tmux configuration](https://code.claude.com/docs/en/terminal-config#configure-tmux)). On the host, Ghostty must have macOS notification permission and `desktop-notifications = true` ([Ghostty option reference](https://ghostty.org/docs/config/reference#desktop-notifications)).
+Herdr separately sends background-agent notifications to the outer terminal
+with `ui.toast.delivery = "terminal"`; it suppresses its popups for the active
+tab. Actual desktop display depends on terminal support and notification
+permissions ([Herdr notifications](https://herdr.dev/docs/configuration/#notifications)).
+For Ghostty on macOS, enable notification permission and
+`desktop-notifications = true`
+([Ghostty option reference](https://ghostty.org/docs/config/reference#desktop-notifications)).
 
-Herdr runs alongside tmux without changing `tmux.conf` or the container entrypoint.
-Launch it directly from a separate interactive connection; its local background
-server then owns the workspaces, tabs, panes, and agent terminals for that Herdr
-session. No Kubernetes Service or inbound port is required.
+Herdr also needs to identify the outer terminal before emitting a notification.
+If plain `kubectl exec` does not expose that identity, Ghostty users can pass it
+for the connection explicitly
+([Herdr terminal detection](https://github.com/herdrdev/herdr/blob/v0.9.0/src/terminal_notify.rs)):
+
+```bash
+kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
+```
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
 
@@ -288,7 +322,7 @@ ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reache
 
 ### Continuous integration
 
-`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml`, checks the Playwright pin and flags, and runs focused launcher and browser-pin tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, checks the Playwright pin and flags, and runs focused launcher and browser-pin tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
 
 Renovate runs weekly on Monday and automerges minor, patch, and digest updates. It delegates the merge to GitHub via [`platformAutomerge`](https://docs.renovatebot.com/configuration-options/#platformautomerge) so a PR lands as soon as it is mergeable, instead of waiting a full week for the next Renovate run to merge it. The active [`main` repository ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) requires `validate-config` and `build`, so GitHub merges Renovate PRs only after both CI jobs pass against the current branch tip. The ruleset lists the Repository admin role in its [bypass list](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository#granting-bypass-permissions-for-your-ruleset), so the maintainer can push to `main` directly; Renovate's PRs stay behind the required checks.
 

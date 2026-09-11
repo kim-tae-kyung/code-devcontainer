@@ -3,6 +3,7 @@
 import json
 import os
 from pathlib import Path
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -49,7 +50,8 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("--image-pull-policy=Always", calls[0])
         self.assertTrue(calls[0][1].startswith("devcontainer-"))
         self.assertNotIn("--namespace=", result.stdout)
-        self.assertIn("Done! Connect:", result.stdout)
+        connection = result.stdout.split("Done! Connect:", 1)[1].strip()
+        self.assertEqual(shlex.split(connection), ["kubectl", "exec", "-it", calls[0][1], "--", "herdr"])
 
     def test_options_preserve_cluster_access_and_scheduling(self):
         result, calls = self.launch(
@@ -67,6 +69,8 @@ class LauncherTests(unittest.TestCase):
         self.assertTrue(spec["shareProcessNamespace"])
         self.assertEqual(len(spec["tolerations"]), 2)
         self.assertNotIn("automountServiceAccountToken", spec)
+        connection = result.stdout.split("Done! Connect:", 1)[1].strip()
+        self.assertEqual(shlex.split(connection), ["kubectl", "exec", "-it", "dev-test", "--namespace=infra", "--", "herdr"])
 
     def test_failures_do_not_report_success(self):
         for failed_command in ("run", "wait"):

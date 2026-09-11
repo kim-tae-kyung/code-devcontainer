@@ -33,5 +33,5 @@ echo "Waiting for pod to be ready..."
 kubectl wait --for=condition=Ready "pod/$POD_NAME" ${namespace_flag:+"$namespace_flag"} --timeout=600s
 
 printf 'Done! Connect:'
-printf ' %q' kubectl exec -it "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- /bin/bash
+printf ' %q' kubectl exec -it "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- herdr
 printf '\n'

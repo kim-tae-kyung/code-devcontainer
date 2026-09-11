@@ -83,7 +83,7 @@ RUN set -e; \
   sudo apt-get clean; \
   sudo rm -rf /var/lib/apt/lists/*
 
-# Ensure Go/Rust PATH persists in tmux login shells (which reset PATH via /etc/profile)
+# Ensure Go/Rust PATH persists in login shells (which reset PATH via /etc/profile)
 RUN echo "export PATH=\"/usr/local/go/bin:${HOME}/go/bin:${HOME}/.cargo/bin:${HOME}/.local/bin:\$PATH\"" | sudo tee /etc/profile.d/golang.sh
 
 # Create workspace
@@ -100,7 +100,7 @@ COPY --chown=node:node claude-settings.json   ${HOME}/.claude/settings.json
 COPY --chown=node:node codex-config.toml      ${HOME}/.codex/config.toml
 COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
 COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
-COPY --chown=node:node tmux.conf              ${HOME}/.tmux.conf
+COPY --chown=node:node herdr-config.toml      ${HOME}/.config/herdr/config.toml
 COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 
 # Ship agent skills to each CLI's user-level discovery directory.
@@ -179,7 +179,7 @@ RUN test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   codex exec --help >/dev/null && codex exec review --help >/dev/null && \
   codex features list | grep -E '^image_generation +stable +true' >/dev/null && \
   jq -e '.permissions.defaultMode == "bypassPermissions"' ${HOME}/.claude/settings.json >/dev/null && \
-  claude --version && codex --version && codex --strict-config mcp-server </dev/null >/dev/null && \
+  claude --version && codex --version && codex --strict-config app-server </dev/null >/dev/null && \
   herdr --version && herdr --help >/dev/null && \
   herdr integration status | grep -q '^claude: current ' && \
   herdr integration status | grep -q '^codex: current ' && \
@@ -194,9 +194,10 @@ RUN test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/context7 && \
   command -v pyright-langserver && \
   node --version && python3 --version && \
-  tmux -V && dpkg --compare-versions "$(tmux -V | awk '{print $2}')" ge 3.5 && \
-  infocmp -x tmux-256color >/dev/null && \
-  tmux -L config-smoke -f ${HOME}/.tmux.conf start-server \; kill-server && \
+  tmux -V && test ! -f ${HOME}/.tmux.conf && \
+  tmux -L default-smoke new-session -d -s smoke 'sleep 30' && \
+  tmux -L default-smoke has-session -t smoke && \
+  tmux -L default-smoke kill-server && \
   black --version && pylsp --help >/dev/null && \
   typescript-language-server --version && pyright --version && isort --version && \
   asciinema --version && agg --version
