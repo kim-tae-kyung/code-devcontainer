@@ -225,6 +225,48 @@ supported); Python formatting remains available through the installed `black`
 CLI. Saving does not run custom format or import-organizing hooks. LSP does
 not auto-start in sessions launched with `nvim -d`, including `git ndiff`.
 
+### The same editor setup on macOS
+
+Use native macOS tools instead of the image's Linux binaries. Install
+[Neovim](https://formulae.brew.sh/formula/neovim) and
+[GNU diff](https://formulae.brew.sh/formula/diffutils) with Homebrew, and reuse
+or install the language servers:
+
+```bash
+brew install neovim diffutils
+npm install -g pyright typescript@6 typescript-language-server
+go install golang.org/x/tools/gopls@latest
+```
+
+For Rust, use [rustup](https://rust-lang.github.io/rustup/installation/index.html)
+with a stable toolchain and the same components as the image:
+
+```bash
+rustup toolchain install stable --profile minimal \
+  --component rust-analyzer --component rust-src --component rustfmt
+```
+
+From this repository, install the shared configuration and Git helper. These
+commands replace the corresponding local files:
+
+```bash
+install -d "$HOME/.config/nvim" "$HOME/.local/bin"
+install -m 0644 nvim/init.lua "$HOME/.config/nvim/init.lua"
+install -m 0755 scripts/git-ndiff "$HOME/.local/bin/git-ndiff"
+git config --global core.editor nvim
+```
+
+Keep zsh as the macOS shell. Set `EDITOR=nvim` and `VISUAL=nvim` in the shell
+startup configuration, and put `~/.cargo/bin`, Go's `bin` directory, and
+`~/.local/bin` on `PATH`. Keep `~/.cargo/bin` ahead of a standalone Homebrew
+`rust-analyzer` so the server matches the rustup toolchain. Homebrew's `bin`
+directory should precede `/usr/bin` so Neovim uses GNU diff. Apply these settings
+to both login and interactive shells, then open a new terminal or Herdr pane.
+
+Check `command -v nvim git-ndiff gopls pyright-langserver typescript-language-server
+rust-analyzer`, `diff --version`, and `git var GIT_EDITOR`. Run the same real
+LSP and diff checks locally with `python3 scripts/check_neovim.py`.
+
 ### Browser Automation (Playwright MCP)
 
 Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with the same pinned MCP registration, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.

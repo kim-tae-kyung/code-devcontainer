@@ -246,7 +246,8 @@ def main():
     nvim = shutil.which("nvim")
     assert nvim, "Neovim is not on PATH"
     with tempfile.TemporaryDirectory(prefix="neovim-smoke-") as directory:
-        root = Path(directory)
+        # macOS temp paths may use /var or /tmp symlinks; Neovim resolves them.
+        root = Path(directory).resolve()
         driver = write(root, "driver.lua", LUA_DRIVER)
         env = os.environ | {"NVIM_SMOKE_DRIVER": str(driver), "CARGO_NET_OFFLINE": "true"}
         check_lsp(root, env, nvim)
