@@ -12,9 +12,9 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **Browser & docs servers** (pre-configured for **both** Claude Code and Codex):
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (both CLIs run the same pinned local MCP server)
   - **context7** — on-demand, up-to-date library/framework documentation (Claude Code uses the official plugin backed by Upstash's hosted HTTP server; Codex runs the local `npx` server)
-- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `vim`, `tree`, and common networking utilities. The image also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/).
+- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `nvim` (default editor), `vim`, `tree`, and common networking utilities. The image installs the latest stable Neovim from its [official release assets](https://github.com/neovim/neovim/releases), verifies the SHA-256 digest, and requires version 0.12 or newer. It also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/).
 - **Terminal multiplexers**: the latest stable Herdr release as the primary workspace, with Claude Code and Codex session integrations. tmux remains installed with its default settings for optional use and demo capture.
-- **LSP Support**: `gopls`, `pylsp`, `pyright`, `typescript-language-server`, `rust-analyzer` — enabled by default in Claude Code via the official code-intelligence plugins (`gopls-lsp`, `pyright-lsp`, `typescript-lsp`, `rust-analyzer-lsp`), pre-installed at build time
+- **LSP Support**: `gopls`, `pyright`, `typescript-language-server`, and `rust-analyzer` are connected to Neovim's native LSP client and Claude Code's official code-intelligence plugins. `pylsp` remains available as an optional Python server. TypeScript stays on the latest 6.x release for compatibility with the [language server](https://github.com/typescript-language-server/typescript-language-server#installing); Rust includes `rust-src` and `rustfmt`.
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
 - **Codex from Claude Code**: two model-invocable Claude Code skills, `codex` (delegate a task, review a plan, or run Codex's native code review) and `codex-imagegen` (raster images through Codex's bundled `imagegen` skill), both driving `codex exec` non-interactively — no plugin and no MCP bridge.
 
@@ -153,6 +153,78 @@ install an automatic updater. The user-level locations make the skill
 available across projects in [Claude Code](https://code.claude.com/docs/en/skills#choose-where-skills-load)
 and [Codex](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
 
+### Editing and Git diff (Neovim)
+
+Open `nvim` in a Herdr pane. The image sets `EDITOR`, `VISUAL`, and Git's system
+`core.editor` to `nvim`; explicit user Git configuration takes precedence.
+Vim and its existing `.vimrc` remain available. Neovim uses its own defaults
+for indentation, colors, recovery files, and editing keys, with only native
+DiffTool and LSP configuration added.
+
+```bash
+nvim path/to/file
+git status --short           # Complete Git change inventory
+git ndiff                    # Unstaged changes to tracked files
+git ndiff --cached            # Staged changes
+git ndiff HEAD -- path/to/dir  # Compare a revision, restricted to a path
+```
+
+`git ndiff` launches the optional built-in
+[DiffTool](https://neovim.io/doc/user/plugins/#difftool) through
+[`git difftool --dir-diff`](https://git-scm.com/docs/git-difftool), using a
+command-scoped tool definition. It leaves the copied `~/.gitconfig` and other
+diff-tool settings intact. Use `:cnext` / `:cprevious` to move through the
+changed-file list, `]c` / `[c` for differences within a file, `Ctrl-w w` to
+switch windows, and `:qa` to quit.
+
+This is an editable content comparison, not a staging interface. Saving a
+worktree-backed buffer can change the working file, including in a staged
+comparison; it does not stage the edit. Untracked files are excluded until
+Git includes them in a diff. Empty-file additions/deletions and permission-only
+changes may be absent from the content comparison, so use `git status` for the
+complete inventory. GNU diff is installed for the built-in directory comparator
+([DiffTool implementation](https://github.com/neovim/neovim/blob/v0.12.5/runtime/pack/dist/opt/nvim.difftool/lua/difftool.lua)).
+
+### Code navigation and completion (LSP)
+
+Neovim connects to the pre-installed servers when a matching code file opens.
+It uses [`vim.lsp.config()` and `vim.lsp.enable()`](https://neovim.io/doc/user/lsp/#lsp-quickstart),
+without a plugin manager or additional Neovim plugins. Neovim and Claude Code
+share the installed executables, with separate server processes per client.
+
+| Language | Server | Project root |
+| --- | --- | --- |
+| Go | `gopls` | `go.work`, then `go.mod`, then `.git` |
+| Python | `pyright-langserver --stdio` | Pyright/Python project configuration, then `.git` |
+| JavaScript, TypeScript, JSX, TSX | `typescript-language-server --stdio` | Nearest `tsconfig.json`, `jsconfig.json`, or `package.json`, then `.git` |
+| Rust | `rust-analyzer` | Cargo workspace, or `rust-project.json` / `.git` |
+
+Python uses only Pyright in Neovim, avoiding duplicate diagnostics from `pylsp`.
+Project configuration controls analysis and dependency resolution; activate a
+Python virtual environment before starting Neovim when appropriate. Rust
+standard-library sources are installed at build time for navigation
+([rust-analyzer setup](https://rust-analyzer.github.io/book/installation.html)).
+
+Use Neovim's [native LSP keys](https://neovim.io/doc/user/lsp/#lsp-defaults):
+
+| Action | Key / command |
+| --- | --- |
+| Definition / return | `Ctrl-]` / `Ctrl-t` |
+| Hover documentation | `K` |
+| References / rename / code action | `grr` / `grn` / `gra` |
+| Next / previous diagnostic | `]d` / `[d` |
+| Request completion | `Ctrl-x Ctrl-o` in Insert mode |
+| Next / previous completion candidate | `Ctrl-n` / `Ctrl-p` |
+| Accept / dismiss completion | `Ctrl-y` / `Ctrl-e` |
+| Inspect server connections | `:checkhealth vim.lsp` |
+
+The native completion menu also opens on server-defined trigger characters,
+with no candidate selected automatically. Features depend on the server's
+capabilities. Formatting is manual (`gq` or `:lua vim.lsp.buf.format()` when
+supported); Python formatting remains available through the installed `black`
+CLI. Saving does not run custom format or import-organizing hooks. LSP does
+not auto-start in sessions launched with `nvim -d`, including `git ndiff`.
+
 ### Browser Automation (Playwright MCP)
 
 Headless Chromium is pre-installed for browser automation via the Playwright MCP server. Both Claude Code and Codex are pre-configured with the same pinned MCP registration, enabling the agent to navigate pages, take screenshots, click elements, and read console logs — all from within the pod/container.
@@ -266,6 +338,7 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`
 - `vimrc` → `~/.vimrc`
+- `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
 
@@ -373,6 +446,12 @@ ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reache
 ### Continuous integration
 
 `ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, checks the Playwright pin and flags, and runs focused launcher and browser-pin tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+
+The image build also runs `scripts/check_neovim.py`: real language-server
+connections and navigation/diagnostics for all four languages, plus Git diff
+fixtures covering staged and unstaged changes, path filtering, file additions
+and deletions, and editing without staging. These checks run as `node` using
+the configuration shipped in the image.
 
 Renovate runs weekly on Monday and automerges minor, patch, and digest updates. It delegates the merge to GitHub via [`platformAutomerge`](https://docs.renovatebot.com/configuration-options/#platformautomerge) so a PR lands as soon as it is mergeable, instead of waiting a full week for the next Renovate run to merge it. The active [`main` repository ruleset](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets) requires `validate-config` and `build`, so GitHub merges Renovate PRs only after both CI jobs pass against the current branch tip. The ruleset lists the Repository admin role in its [bypass list](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/creating-rulesets-for-a-repository#granting-bypass-permissions-for-your-ruleset), so the maintainer can push to `main` directly; Renovate's PRs stay behind the required checks.
 

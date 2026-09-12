@@ -13,7 +13,8 @@ ENV HOME=/home/node
 ENV TZ=${TZ} \
     SHELL=/bin/bash \
     DEBIAN_FRONTEND=noninteractive \
-    EDITOR=vim \
+    EDITOR=nvim \
+    VISUAL=nvim \
     LANG=en_US.UTF-8 \
     GOPATH=${HOME}/go \
     CARGO_HOME=${HOME}/.cargo \
@@ -31,12 +32,34 @@ USER node
 # Install system packages
 RUN sudo apt-get update && \
   sudo apt-get -y install --no-install-recommends \
-    git gh jq ripgrep curl tini \
+    git gh jq ripgrep curl tini diffutils \
     iproute2 dnsutils iputils-ping net-tools \
     vim tree tmux ncurses-bin \
     python3 python3-pip python3-venv && \
   sudo apt-get clean && \
   sudo rm -rf /var/lib/apt/lists/*
+
+# Install the latest stable Neovim, including its runtime, for the native arch.
+# Release asset digests: https://docs.github.com/en/rest/releases/assets
+RUN case "${TARGETARCH}" in \
+      amd64) NVIM_ARCH=x86_64 ;; \
+      arm64) NVIM_ARCH=arm64 ;; \
+      *) echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
+    esac && \
+  NVIM_RELEASE="$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest)" && \
+  NVIM_ASSET="$(jq -ce --arg name "nvim-linux-${NVIM_ARCH}.tar.gz" \
+    '.assets[] | select(.name == $name)' <<< "${NVIM_RELEASE}")" && \
+  NVIM_URL="$(jq -er '.browser_download_url' <<< "${NVIM_ASSET}")" && \
+  NVIM_SHA256="$(jq -er '.digest | select(test("^sha256:[0-9a-f]{64}$")) | ltrimstr("sha256:")' <<< "${NVIM_ASSET}")" && \
+  curl -fsSL "${NVIM_URL}" -o /tmp/nvim.tar.gz && \
+  echo "${NVIM_SHA256}  /tmp/nvim.tar.gz" | sha256sum --check && \
+  sudo install -d /opt/nvim && \
+  sudo tar -xzf /tmp/nvim.tar.gz -C /opt/nvim --strip-components=1 && \
+  sudo ln -s /opt/nvim/bin/nvim /usr/local/bin/nvim && \
+  rm /tmp/nvim.tar.gz && \
+  nvim --version && \
+  nvim --clean --headless -c 'lua if vim.fn.has("nvim-0.12") == 0 then vim.cmd.cquit() end' -c qa && \
+  sudo git config --system core.editor nvim
 
 # Install Go
 RUN GO_VERSION_STR=$(curl -sSL "https://go.dev/VERSION?m=text" | head -n 1) && \
@@ -47,10 +70,11 @@ RUN GO_VERSION_STR=$(curl -sSL "https://go.dev/VERSION?m=text" | head -n 1) && \
   sudo tar -C /usr/local -xzf /tmp/go.tar.gz && \
   rm /tmp/go.tar.gz
 
-# Install Rust (minimal profile) with rust-analyzer for LSP support.
+# Install Rust with the LSP server, standard-library sources and formatter.
 # rustup detects the target architecture itself, so no TARGETARCH branching.
 RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
-  sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable -c rust-analyzer
+  sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
+    -c rust-analyzer -c rust-src -c rustfmt
 
 # Install agg (asciinema gif generator; renders .cast recordings to GIF).
 # aarch64 ships only a gnu build, amd64 a static musl build — both run on the glibc base.
@@ -93,7 +117,9 @@ RUN sudo install -d -o node -g node /workspace
 # Install LSPs and formatters
 RUN go install golang.org/x/tools/gopls@latest
 RUN go install github.com/mikefarah/yq/v4@latest
-RUN npm install -g pyright typescript typescript-language-server
+# This server requires the JavaScript tsserver from TypeScript 6, not TS 7.
+# https://github.com/typescript-language-server/typescript-language-server#installing
+RUN npm install -g pyright typescript@6 typescript-language-server
 RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort asciinema==2.4.0
 
 # Copy configuration files
@@ -103,6 +129,8 @@ COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
 COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
 COPY --chown=node:node herdr-config.toml      ${HOME}/.config/herdr/config.toml
 COPY --chown=node:node vimrc                  ${HOME}/.vimrc
+COPY --chown=node:node nvim/                  ${HOME}/.config/nvim/
+COPY --chmod=0755 scripts/git-ndiff           /usr/local/bin/git-ndiff
 
 # Ship agent skills to each CLI's user-level discovery directory.
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
@@ -215,6 +243,14 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   black --version && pylsp --help >/dev/null && \
   typescript-language-server --version && pyright --version && isort --version && \
   asciinema --version && agg --version
+
+# Exercise the shipped editor configuration and real LSP/directory-diff flows.
+COPY --chown=node:node scripts/check_neovim.py /tmp/check_neovim.py
+RUN test "${EDITOR}" = nvim && test "${VISUAL}" = nvim && \
+  test "$(git var GIT_EDITOR)" = nvim && \
+  rustfmt --version && \
+  test -f "$(rustc --print sysroot)/lib/rustlib/src/rust/library/std/src/lib.rs" && \
+  python3 /tmp/check_neovim.py && rm /tmp/check_neovim.py
 
 WORKDIR /workspace
 

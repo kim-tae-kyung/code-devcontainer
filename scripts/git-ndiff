@@ -1,0 +1,5 @@
+#!/bin/sh
+# Keep the user's Git configuration intact; Git supplies quoted comparison paths.
+# https://git-scm.com/docs/git-difftool
+exec git -c 'difftool.ndiff.cmd=nvim -c "packadd nvim.difftool" -d -- "$LOCAL" "$REMOTE"' \
+  difftool --tool=ndiff --dir-diff --trust-exit-code "$@"
