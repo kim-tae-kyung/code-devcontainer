@@ -17,6 +17,9 @@ vim.lsp.config('gopls', {
 
 vim.lsp.config('pyright', {
   cmd = { 'pyright-langserver', '--stdio' },
+  -- Avoid lost diagnostics during overlapping pull requests in Pyright 1.1.414.
+  -- https://github.com/microsoft/pyright/blob/1.1.414/packages/pyright-internal/src/languageServerBase.ts
+  init_options = { disablePullDiagnostics = true },
   filetypes = { 'python' },
   root_markers = {
     'pyrightconfig.json',
