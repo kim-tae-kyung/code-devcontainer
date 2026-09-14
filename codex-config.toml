@@ -4,6 +4,12 @@ approval_policy = "never"
 sandbox_mode = "danger-full-access"
 web_search = "live"
 
+# Long-task tuning, not OpenAI-recommended optimal context sizes.
+# https://learn.chatgpt.com/docs/config-file/config-reference
+model = "gpt-6-astra"
+model_context_window = 512000
+model_auto_compact_token_limit = 430000
+
 # Planning is high-leverage work; always use the maximum configured effort.
 # Extra High suits difficult work with multiple steps, sources, or tradeoffs.
 # https://learn.chatgpt.com/docs/config-file/config-reference
@@ -15,9 +21,14 @@ memories = false
 # Herdr's Codex integration reports native session identity through hooks.
 hooks = true
 
-# Stateless sessions: features.memories only stops memory *generation*;
-# use_memories (default true) stops *injecting* existing memories, and
-# history.persistence stops transcript recording (history.jsonl).
+# Opt in for new tasks; activation also requires an eligible ChatGPT account
+# and a model catalog advertising experimental context support.
+# https://learn.chatgpt.com/docs/models#experimental-context-management
+[features.context_management]
+experimental_mode = true
+
+# Disable cross-task memory generation/injection and history.jsonl recording.
+# These are separate from experimental same-task context notes/history.
 # https://developers.openai.com/codex/config-reference
 [memories]
 use_memories = false

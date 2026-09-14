@@ -412,13 +412,21 @@ The working directory is `/workspace`.
 
 ### Models, effort, and operating instructions
 
-Neither CLI pins a model. Select a model for the current task with `/model`
+Codex defaults to `gpt-6-astra`; Claude Code leaves the model unspecified.
+Select a model for the current task with `/model`
 ([Codex commands](https://learn.chatgpt.com/docs/developer-commands),
 [Claude model configuration](https://code.claude.com/docs/en/model-config)).
 Codex sets `plan_mode_reasoning_effort = "xhigh"`; ordinary Codex turns and
 Claude Code sessions leave effort unspecified
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
 [Claude effort](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
+
+Codex opts in to experimental context management with a 512K context window
+and 430K compaction threshold; these are tuning choices, not official optimal
+values. Start a new task after configuration changes. Activation requires an
+eligible ChatGPT account and model support in the server catalog
+([configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
+[activation checks](https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/core/src/session/token_budget.rs)).
 
 The shared operating principles stay under 200 words. They define language,
 authorized scope, execution, documentation, and communication; this README
@@ -440,6 +448,7 @@ plain language, with lists or tables when helpful.
 Codex memory generation and injection are disabled, and `history.persistence`
 is `none`; this setting controls `history.jsonl`, not all session storage
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference)).
+They do not disable experimental same-task context notes/history.
 Claude auto memory is disabled and `cleanupPeriodDays` is `3`
 ([Claude settings](https://code.claude.com/docs/en/settings)). Persistent
 instructions belong in `operating-principles.md`.
