@@ -91,7 +91,7 @@ RUN case "${TARGETARCH}" in \
 # Install Chromium for headless browser testing via Playwright MCP. The browser
 # revision comes from the pinned server's own playwright core, so the pair cannot
 # drift apart on a rebuild. Renovate raises the pin; the browser follows.
-ARG PLAYWRIGHT_MCP_VERSION=0.0.80
+ARG PLAYWRIGHT_MCP_VERSION=0.0.82
 RUN set -e; \
   PLAYWRIGHT_CORE="$(npm view "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" dependencies.playwright)"; \
   if ! echo "${PLAYWRIGHT_CORE}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then \
