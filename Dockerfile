@@ -129,6 +129,7 @@ COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
 COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
 COPY --chown=node:node herdr-config.toml      ${HOME}/.config/herdr/config.toml
 COPY --chown=node:node vimrc                  ${HOME}/.vimrc
+COPY --chown=node:node bash_aliases           ${HOME}/.bash_aliases
 COPY --chown=node:node nvim/                  ${HOME}/.config/nvim/
 COPY --chmod=0755 scripts/git-ndiff           /usr/local/bin/git-ndiff
 
@@ -169,6 +170,12 @@ RUN claude plugin marketplace add anthropics/claude-plugins-official && \
 RUN claude mcp add --transport stdio --scope user playwright -- \
   npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" \
   --headless --browser=chromium --no-sandbox
+
+# Disable the empty-prompt left-arrow gesture that opens the agents view and
+# hands a working session to a background copy. Herdr owns backgrounding here.
+# This is a global-config key in ~/.claude.json, not a settings.json key.
+RUN jq '. + {leftArrowOpensAgents: false}' ${HOME}/.claude.json > /tmp/claude.json && \
+  mv /tmp/claude.json ${HOME}/.claude.json
 
 # Install the latest stable Herdr release. Its installer selects the native
 # Linux asset and verifies the release-published SHA-256 checksum.
@@ -223,9 +230,13 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   jq -e '.permissions.defaultMode == "bypassPermissions"' ${HOME}/.claude/settings.json >/dev/null && \
   claude --version && codex --version && codex --strict-config app-server </dev/null >/dev/null && \
   herdr --version && herdr --help >/dev/null && \
-  herdr integration status | grep -q '^claude: current ' && \
-  herdr integration status | grep -q '^codex: current ' && \
+  herdr integration status | grep '^claude: current ' >/dev/null && \
+  herdr integration status | grep '^codex: current ' >/dev/null && \
   jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \
+  jq -e '.env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF == "1"' ${HOME}/.claude/settings.json >/dev/null && \
+  jq -e '.leftArrowOpensAgents == false' ${HOME}/.claude.json >/dev/null && \
+  test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
+  test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --yolo'" && \
   kubectl version --client && headless_shell --version && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \

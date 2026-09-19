@@ -258,7 +258,15 @@ git config --global core.editor nvim
 
 Keep zsh as the macOS shell. Set `EDITOR=nvim` and `VISUAL=nvim` in the shell
 startup configuration, and put `~/.cargo/bin`, Go's `bin` directory, and
-`~/.local/bin` on `PATH`. Keep `~/.cargo/bin` ahead of a standalone Homebrew
+`~/.local/bin` on `PATH`. Add the same interactive aliases as `bash_aliases`
+if you want the agents to skip prompts locally:
+
+```zsh
+alias claude='claude --dangerously-skip-permissions'
+alias codex='codex --yolo'
+```
+
+Keep `~/.cargo/bin` ahead of a standalone Homebrew
 `rust-analyzer` so the server matches the rustup toolchain. Homebrew's `bin`
 directory should precede `/usr/bin` so Neovim uses GNU diff. Apply these settings
 to both login and interactive shells, then open a new terminal or Herdr pane.
@@ -362,6 +370,14 @@ is not an assumption or a control provided by this repository.
   ([Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 - **Playwright** receives `--no-sandbox` in both MCP registrations
   ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
+- **Interactive aliases** in `~/.bash_aliases` run `claude` as
+  `claude --dangerously-skip-permissions` and `codex` as `codex --yolo`. Each
+  flag is the documented equivalent of the baked configuration above, so the
+  aliases make the mode explicit in a pane without changing it
+  ([Claude flag equivalence](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode),
+  [Codex `--yolo`](https://learn.chatgpt.com/docs/cli/reference)). Aliases
+  apply only to interactive Bash; the `codex exec` calls that Claude's `codex`
+  skill runs through its Bash tool do not expand them.
 
 The CLIs run as `node`. Kubernetes API authority depends on the Pod's selected
 ServiceAccount and cluster RBAC. The launcher retains token-mount defaults and
@@ -380,6 +396,7 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`
 - `vimrc` → `~/.vimrc`
+- `bash_aliases` → `~/.bash_aliases` (interactive `claude` and `codex` bypass aliases)
 - `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
@@ -468,6 +485,14 @@ terminals. This connection requires no Kubernetes Service or inbound port.
 Both CLIs retain their main-screen settings: Claude Code uses
 `"tui": "default"`, and Codex uses `[tui] alternate_screen = "never"`
 ([Codex alternate-screen behavior](https://github.com/openai/codex/pull/8555)).
+
+Herdr owns backgrounding, so Claude Code's own session-handoff paths are
+disabled. The build writes `leftArrowOpensAgents: false` to `~/.claude.json`,
+which turns off the empty-prompt `←` gesture that opens the agents view and
+moves a working session to a background copy; the same switch appears as
+"← opens agents" in `/config`. The settings `env` sets
+`CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF=1`, which removes the "Move to background
+and exit" choice when quitting with background work.
 
 The pod explicitly selects Claude Code's `"ghostty"` notification channel and Codex's OSC 9 TUI notifications instead of relying on terminal auto-detection across the remote boundary. Claude Code emits native task-complete and input-needed notifications; Codex enables all supported TUI notification events and emits them regardless of terminal focus ([Claude terminal notifications](https://code.claude.com/docs/en/terminal-config#get-a-terminal-bell-or-notification), [Codex notifications](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications)).
 
