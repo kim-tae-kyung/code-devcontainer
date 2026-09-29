@@ -33,7 +33,8 @@ creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
 # (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
 ./run-k8s-daemon-example.sh
 
-# Connect directly to Herdr
+# Connect directly to Herdr (the launcher prints this line, adding
+# `env TERM_PROGRAM=...` when the launcher's shell has it set)
 kubectl exec -it devcontainer-<timestamp> -- herdr
 
 # Optional plain shell
@@ -520,8 +521,9 @@ tab title by default ([Claude terminal notifications](https://code.claude.com/do
 [Ghostty `bell-features`](https://ghostty.org/docs/config/reference#bell-features)).
 
 Herdr also needs to identify the outer terminal before emitting a notification.
-If plain `kubectl exec` does not expose that identity, Ghostty users can pass it
-for the connection explicitly
+`kubectl exec` does not forward that identity, so the launcher's printed
+connection command passes the local `TERM_PROGRAM` when it is set; pass it
+explicitly when connecting by hand
 ([Herdr terminal detection](https://github.com/herdrdev/herdr/blob/v0.9.0/src/terminal_notify.rs)):
 
 ```bash

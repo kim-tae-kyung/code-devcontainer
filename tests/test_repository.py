@@ -46,7 +46,7 @@ class LauncherTests(unittest.TestCase):
             )
             kubectl.chmod(0o755)
             env = dict(os.environ)
-            for name in ("POD_NAME", "IMAGE", "NAMESPACE", "SERVICE_ACCOUNT", "NODE_NAME"):
+            for name in ("POD_NAME", "IMAGE", "NAMESPACE", "SERVICE_ACCOUNT", "NODE_NAME", "TERM_PROGRAM"):
                 env.pop(name, None)
             env.update(PATH=f"{work}:{env['PATH']}", LAUNCH_TEST_LOG=str(log))
             # Use a fixture home so tests never read the operator's files.
@@ -87,6 +87,15 @@ class LauncherTests(unittest.TestCase):
         self.assertNotIn("automountServiceAccountToken", spec)
         connection = result.stdout.split("Done! Connect:", 1)[1].strip()
         self.assertEqual(shlex.split(connection), ["kubectl", "exec", "-it", "dev-test", "--namespace=infra", "--", "herdr"])
+
+    def test_connection_forwards_terminal_identity_for_herdr(self):
+        result, calls = self.launch(POD_NAME="dev-test", TERM_PROGRAM="ghostty")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        connection = result.stdout.split("Done! Connect:", 1)[1].strip()
+        self.assertEqual(
+            shlex.split(connection),
+            ["kubectl", "exec", "-it", "dev-test", "--", "env", "TERM_PROGRAM=ghostty", "herdr"],
+        )
 
     def test_failures_do_not_report_success(self):
         for failed_command in ("run", "wait"):

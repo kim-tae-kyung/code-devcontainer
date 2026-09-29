@@ -49,6 +49,9 @@ if [ -f "${HOME}/.gitconfig" ]; then
     kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- chmod 600 /home/node/.gitconfig
 fi
 
+# Herdr identifies the outer terminal from TERM_PROGRAM, which `kubectl exec`
+# does not forward, so pass the launcher's value when it is set.
 printf 'Done! Connect:'
-printf ' %q' kubectl exec -it "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- herdr
+printf ' %q' kubectl exec -it "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- \
+    ${TERM_PROGRAM:+env "TERM_PROGRAM=$TERM_PROGRAM"} herdr
 printf '\n'
