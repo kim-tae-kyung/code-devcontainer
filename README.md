@@ -430,12 +430,13 @@ The working directory is `/workspace`.
 
 ### Models, effort, and operating instructions
 
-Codex defaults to `gpt-6-astra`; Claude Code leaves the model unspecified.
+Codex defaults to `gpt-6.1-sol`; Claude Code leaves the model unspecified.
 Select a model for the current task with `/model`
 ([Codex commands](https://learn.chatgpt.com/docs/developer-commands),
 [Claude model configuration](https://code.claude.com/docs/en/model-config)).
-Codex sets `plan_mode_reasoning_effort = "xhigh"`; ordinary Codex turns and
-Claude Code sessions leave effort unspecified
+Codex sets `model_reasoning_effort = "high"` for ordinary turns and
+`plan_mode_reasoning_effort = "xhigh"` for planning. Claude Code sessions leave
+effort unspecified
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
 [Claude effort](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
 
@@ -448,9 +449,9 @@ eligible ChatGPT account and model support in the server catalog
 
 The shared operating principles stay under 200 words. They define language,
 authorized scope, execution, documentation, and communication; this README
-holds the model-specific rationale:
+holds the agent-specific rationale:
 
-- For GPT-6 Astra, the instructions reuse prior authorization, resolve routine
+- For Codex, the instructions reuse prior authorization, resolve routine
   choices, explain skill blockers, delegate bounded tasks, and limit repeated
   verification to new evidence
   ([Astra prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra#prompting-best-practices)).

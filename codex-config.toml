@@ -4,9 +4,13 @@ approval_policy = "never"
 sandbox_mode = "danger-full-access"
 web_search = "live"
 
+# Default model and effort for ordinary work.
+# https://learn.chatgpt.com/docs/config-file/config-reference
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+
 # Long-task tuning, not OpenAI-recommended optimal context sizes.
 # https://learn.chatgpt.com/docs/config-file/config-reference
-model = "gpt-6-astra"
 model_context_window = 512000
 model_auto_compact_token_limit = 430000
 
