@@ -40,14 +40,14 @@ persistence = "none"
 [analytics]
 enabled = false
 
-# `kubectl exec` does not reliably expose the outer terminal identity, so force
-# Ghostty-compatible OSC 9 instead of relying on auto detection; notify
-# regardless of terminal focus. Render on the main screen for scrollback.
-# https://learn.chatgpt.com/docs/config-file/config-advanced#notifications
-# https://github.com/openai/codex/pull/8555
+# Inside a Herdr pane (TERM_PROGRAM=herdr) only BEL reaches the outer terminal;
+# Herdr's own toast carries the desktop notification. Main-screen output stays
+# in Herdr's host scrollback for `herdr agent read` and handoff.
+# https://learn.chatgpt.com/docs/config-file/config-reference
+# https://herdr.dev/docs/agent-automation/
 [tui]
 notifications = true
-notification_method = "osc9"
+notification_method = "bel"
 notification_condition = "always"
 alternate_screen = "never"
 

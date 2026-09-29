@@ -29,7 +29,7 @@
   "permissions": {
     "defaultMode": "bypassPermissions"
   },
-  "preferredNotifChannel": "ghostty",
+  "preferredNotifChannel": "terminal_bell",
   "tui": "default",
   "autoMemoryEnabled": false,
   "skipDangerousModePermissionPrompt": true,

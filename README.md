@@ -485,6 +485,11 @@ terminals. This connection requires no Kubernetes Service or inbound port.
 Both CLIs retain their main-screen settings: Claude Code uses
 `"tui": "default"`, and Codex uses `[tui] alternate_screen = "never"`
 ([Codex alternate-screen behavior](https://github.com/openai/codex/pull/8555)).
+Main-screen output enters Herdr's per-pane host scrollback, where
+`herdr agent read` reads it passively and a handoff update keeps it; an
+alternate-screen transcript is readable only through a mouse-scroll harvest
+while the agent is idle
+([Herdr agent automation](https://herdr.dev/docs/agent-automation/)).
 
 Herdr owns backgrounding, so Claude Code's own session-handoff paths are
 disabled. The build writes `leftArrowOpensAgents: false` to `~/.claude.json`,
@@ -494,15 +499,25 @@ moves a working session to a background copy; the same switch appears as
 `CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF=1`, which removes the "Move to background
 and exit" choice when quitting with background work.
 
-The pod explicitly selects Claude Code's `"ghostty"` notification channel and Codex's OSC 9 TUI notifications instead of relying on terminal auto-detection across the remote boundary. Claude Code emits native task-complete and input-needed notifications; Codex enables all supported TUI notification events and emits them regardless of terminal focus ([Claude terminal notifications](https://code.claude.com/docs/en/terminal-config#get-a-terminal-bell-or-notification), [Codex notifications](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications)).
-
-Herdr separately sends background-agent notifications to the outer terminal
-with `ui.toast.delivery = "terminal"`; it suppresses its popups for the active
-tab. Actual desktop display depends on terminal support and notification
-permissions ([Herdr notifications](https://herdr.dev/docs/configuration/#notifications)).
+Herdr sends finished and needs-input agent notifications to the outer
+terminal with `ui.toast.delivery = "terminal"`; this is the desktop
+notification path. It suppresses the popup for the active tab only while the
+outer terminal is focused or its focus is unknown. Actual desktop display
+depends on terminal support and notification permissions
+([Herdr notifications](https://herdr.dev/docs/configuration/#notifications)).
 For Ghostty on macOS, enable notification permission and
 `desktop-notifications = true`
 ([Ghostty option reference](https://ghostty.org/docs/config/reference#desktop-notifications)).
+
+Both CLIs additionally ring the terminal bell as a fallback:
+`"preferredNotifChannel": "terminal_bell"` for Claude Code and
+`notification_method = "bel"` with `notification_condition = "always"` for
+Codex. Panes run with `TERM_PROGRAM=herdr`, and Herdr forwards a pane's BEL to
+the outer terminal but keeps OSC 9 and OSC 777 for agent detection. Ghostty
+reacts to the bell by bouncing the dock icon while unfocused and marking the
+tab title by default ([Claude terminal notifications](https://code.claude.com/docs/en/terminal-config#get-a-terminal-bell-or-notification),
+[Codex notifications](https://learn.chatgpt.com/docs/config-file/config-advanced#notifications),
+[Ghostty `bell-features`](https://ghostty.org/docs/config/reference#bell-features)).
 
 Herdr also needs to identify the outer terminal before emitting a notification.
 If plain `kubectl exec` does not expose that identity, Ghostty users can pass it
@@ -515,7 +530,7 @@ kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
 
-ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reached through `kubectl exec`. For this workflow, Codex alerts use the built-in terminal notification path to Ghostty; connecting a Codex environment to ChatGPT Remote requires a supported desktop or SSH host.
+ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reached through `kubectl exec`. For this workflow, Codex alerts rely on Herdr's terminal toast and the forwarded bell; connecting a Codex environment to ChatGPT Remote requires a supported desktop or SSH host.
 
 ## Build & Push
 
