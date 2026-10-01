@@ -9,9 +9,8 @@ A container image for AI-assisted software development, bundling the Anthropic C
 - **AI Tools**:
   - **Claude Code** (Anthropic) — installed via the official native installer
   - `@openai/codex` — installed via npm
-- **Browser & docs servers** (pre-configured for **both** Claude Code and Codex):
+- **Browser server** (pre-configured for **both** Claude Code and Codex):
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (both CLIs run the same pinned local MCP server)
-  - **context7** — on-demand, up-to-date library/framework documentation (Claude Code uses the official plugin backed by Upstash's hosted HTTP server; Codex runs the local `npx` server)
 - **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `nvim` (default editor), `vim`, `tree`, and common networking utilities. The image installs the latest stable Neovim from its [official release assets](https://github.com/neovim/neovim/releases), verifies the SHA-256 digest, and requires version 0.12 or newer. It also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/).
 - **Terminal multiplexers**: the latest stable Herdr release as the primary workspace, with Claude Code and Codex session integrations. tmux remains installed with its default settings for optional use and demo capture.
 - **LSP Support**: `gopls`, `pyright`, `typescript-language-server`, and `rust-analyzer` are connected to Neovim's native LSP client and Claude Code's official code-intelligence plugins. `pylsp` remains available as an optional Python server. TypeScript stays on the latest 6.x release for compatibility with the [language server](https://github.com/typescript-language-server/typescript-language-server#installing); Rust includes `rust-src` and `rustfmt`.
@@ -414,8 +413,7 @@ also remains at its upstream default, which reads the image's `SHELL=/bin/bash`
 environment variable ([Herdr configuration](https://herdr.dev/docs/configuration/)).
 No custom tmux configuration is baked into the image.
 
-Claude Code gets context7 and language intelligence from official marketplace
-plugins. Playwright uses a user-scoped registration in `~/.claude.json`, created
+Claude Code gets language intelligence from official marketplace plugins. Playwright uses a user-scoped registration in `~/.claude.json`, created
 at build time, so it is available in every project
 ([MCP scope](https://code.claude.com/docs/en/mcp#user-scope)). Both agents use
 `PLAYWRIGHT_MCP_VERSION`; `codex-config.toml` mirrors that pin and Renovate
@@ -562,9 +560,14 @@ Container images are built and pushed via GitHub Actions every Monday at 06:00 K
 Run the smoke test on a native arm64 host:
 
 ```bash
-podman build --platform linux/arm64 -t code-devcontainer:local .
+podman build --format docker --platform linux/arm64 -t code-devcontainer:local .
 ```
 
+`--format docker` is required. Podman builds OCI images by default, and the OCI
+format does not record the Dockerfile's `SHELL` instruction, so the Bash-only
+`RUN` steps would run under `/bin/sh` and fail
+([Podman `--format`](https://docs.podman.io/en/latest/markdown/podman-build.1.html#format),
+[Dockerfile `SHELL`](https://docs.docker.com/reference/dockerfile/#shell)).
 Use `linux/amd64` on a native amd64 host. Publish the combined image through
 the release workflow so each architecture runs its Chromium check natively.
 For a local refresh of unpinned tools, add `--no-cache`

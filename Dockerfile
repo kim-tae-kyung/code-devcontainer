@@ -155,14 +155,13 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Install Codex CLI
 RUN npm install -g @openai/codex
 
-# Install code intelligence and hosted documentation plugins.
+# Install code intelligence plugins.
 # https://code.claude.com/docs/en/discover-plugins
 RUN claude plugin marketplace add anthropics/claude-plugins-official && \
   claude plugin install gopls-lsp@claude-plugins-official && \
   claude plugin install pyright-lsp@claude-plugins-official && \
   claude plugin install typescript-lsp@claude-plugins-official && \
-  claude plugin install rust-analyzer-lsp@claude-plugins-official && \
-  claude plugin install context7@claude-plugins-official
+  claude plugin install rust-analyzer-lsp@claude-plugins-official
 
 # Both agents use the same server and the Chromium installed for that pin.
 # User scope makes the registration available in every project.
@@ -210,8 +209,7 @@ RUN python3 /tmp/check_playwright_pin.py \
   rm /tmp/check_playwright_pin.py
 
 # Load the pinned browser server and pre-warm its npx cache.
-RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
-  npx -y @upstash/context7-mcp --version
+RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version
 
 # Smoke test
 # Check the exported runtime shell from a child process; Bash can set its own
@@ -244,7 +242,6 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/pyright-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/typescript-lsp && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp && \
-  test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/context7 && \
   command -v pyright-langserver && \
   node --version && python3 --version && \
   tmux -V && test ! -f ${HOME}/.tmux.conf && \

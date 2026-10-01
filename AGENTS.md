@@ -10,8 +10,9 @@ Work done by the maintainer or an agent in this repository goes directly to
 requests are for Renovate, whose automerge waits on the CI build job. That job
 runs only on `pull_request` events, so a direct push to `main` gets the
 settings and TOML checks but not the image smoke test; run the smoke test
-locally (`podman build --platform linux/arm64 .`) when a change touches the
-Dockerfile.
+locally (`podman build --format docker --platform linux/arm64 .`) when a change
+touches the Dockerfile. Podman's default OCI format ignores the Dockerfile's
+`SHELL` instruction, so its Bash-only `RUN` steps fail without `--format docker`.
 
 ## Keep the Playwright MCP pin aligned
 

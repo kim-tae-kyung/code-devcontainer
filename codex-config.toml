@@ -55,15 +55,10 @@ notification_method = "bel"
 notification_condition = "always"
 alternate_screen = "never"
 
-# context7 tracks `@latest`. Playwright is pinned to the version the image built
-# Chromium for; keep it equal to PLAYWRIGHT_MCP_VERSION in the Dockerfile.
+# Playwright is pinned to the version the image built Chromium for; keep it
+# equal to PLAYWRIGHT_MCP_VERSION in the Dockerfile.
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
 # https://github.com/openai/codex/issues/11851
-[mcp_servers.context7]
-command = "npx"
-args = ["-y", "@upstash/context7-mcp"]
-startup_timeout_sec = 60
-
 # tool_timeout_sec: browser navigation/screenshots routinely exceed the 60s default.
 [mcp_servers.playwright]
 command = "npx"
