@@ -4,7 +4,9 @@ approval_policy = "never"
 sandbox_mode = "danger-full-access"
 web_search = "live"
 
-# Default model and effort for ordinary work.
+# Default model and effort for ordinary work. GPT-6.1 Sol is OpenAI's
+# recommended model for complex coding and agentic workflows.
+# https://learn.chatgpt.com/docs/models
 # https://learn.chatgpt.com/docs/config-file/config-reference
 model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
@@ -14,8 +16,8 @@ model_reasoning_effort = "high"
 model_context_window = 512000
 model_auto_compact_token_limit = 430000
 
-# Planning is high-leverage work; always use the maximum configured effort.
-# Extra High suits difficult work with multiple steps, sources, or tradeoffs.
+# Planning is high-leverage work; Extra High suits difficult work with
+# multiple steps, sources, or tradeoffs. Max and Ultra are left for /model.
 # https://learn.chatgpt.com/docs/config-file/config-reference
 # https://learn.chatgpt.com/docs/models
 plan_mode_reasoning_effort = "xhigh"
@@ -25,14 +27,7 @@ memories = false
 # Herdr's Codex integration reports native session identity through hooks.
 hooks = true
 
-# Opt in for new tasks; activation also requires an eligible ChatGPT account
-# and a model catalog advertising experimental context support.
-# https://learn.chatgpt.com/docs/models#experimental-context-management
-[features.context_management]
-experimental_mode = true
-
 # Disable cross-task memory generation/injection and history.jsonl recording.
-# These are separate from experimental same-task context notes/history.
 # https://developers.openai.com/codex/config-reference
 [memories]
 use_memories = false

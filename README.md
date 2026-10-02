@@ -403,6 +403,11 @@ Files baked into the image at build time:
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the latest upstream `herdr` skill to both user-level skill directories.
+Codex skips a hook until you trust it, and `--yolo` does not bypass that check.
+On the first Codex start in a new Pod, open `/hooks` when prompted and trust
+Herdr's `SessionStart` hook; Codex saves the trust in `~/.codex/config.toml`
+and asks again only if the hook changes
+([Codex hook trust](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks)).
 
 Herdr has four explicit settings: skip onboarding (`onboarding = false`), show
 agent labels on pane borders (`ui.show_agent_labels_on_pane_borders = true`),
@@ -428,22 +433,23 @@ The working directory is `/workspace`.
 
 ### Models, effort, and operating instructions
 
-Codex defaults to `gpt-6.1-sol`; Claude Code leaves the model unspecified.
+Codex defaults to `gpt-6.1-sol`, OpenAI's recommended model for complex coding
+and agentic work ([Codex models](https://learn.chatgpt.com/docs/models)).
+Claude Code leaves the model unspecified, so it uses the account default, which
+is Opus 5.5 on the Anthropic API. The `opus`, `fable`, and `best` aliases follow
+newer releases without a configuration change
+([Claude model aliases](https://code.claude.com/docs/en/model-config#model-aliases)).
 Select a model for the current task with `/model`
 ([Codex commands](https://learn.chatgpt.com/docs/developer-commands),
 [Claude model configuration](https://code.claude.com/docs/en/model-config)).
+
 Codex sets `model_reasoning_effort = "high"` for ordinary turns and
-`plan_mode_reasoning_effort = "xhigh"` for planning. Claude Code sessions leave
-effort unspecified
+`plan_mode_reasoning_effort = "xhigh"` for planning. Claude Code leaves effort
+at each model's default, which is `medium` for Opus 5.5
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
 [Claude effort](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
-
-Codex opts in to experimental context management with a 512K context window
-and 430K compaction threshold; these are tuning choices, not official optimal
-values. Start a new task after configuration changes. Activation requires an
-eligible ChatGPT account and model support in the server catalog
-([configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
-[activation checks](https://github.com/openai/codex/blob/rust-v0.154.0/codex-rs/core/src/session/token_budget.rs)).
+Codex also sets a 512K context window and a 430K compaction threshold. These
+are tuning choices, not official optimal values.
 
 The shared operating principles stay under 200 words. They define language,
 authorized scope, execution, documentation, and communication; this README
@@ -452,11 +458,25 @@ holds the agent-specific rationale:
 - For Codex, the instructions reuse prior authorization, resolve routine
   choices, explain skill blockers, delegate bounded tasks, and limit repeated
   verification to new evidence
-  ([Astra prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6-astra#prompting-best-practices)).
-- For Claude Fable 5.1, the instructions require task completion, targeted
-  edits, proportional tests, independent tool-call batching, brief progress
-  updates, and preservation of goals and unfinished work across compaction
-  ([Fable 5.1 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)).
+  ([GPT-6.1 Sol prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6.1-sol#prompting-best-practices)).
+- For Claude Opus 5.5 and Fable 5.1, the instructions require task completion,
+  targeted edits, proportional tests, independent tool-call batching, brief
+  progress updates, and preservation of goals and unfinished work across
+  compaction
+  ([Opus 5.5 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5),
+  [Fable 5.1 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)).
+
+The image installs the shared principles as each CLI's user-level instruction
+file: `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. Claude Code has no
+user-level `AGENTS.md`. In a workspace repository, Codex reads `AGENTS.md`.
+Claude Code reads it too when the repository has no `CLAUDE.md`, `.claude/CLAUDE.md`,
+or `CLAUDE.local.md`; **Project instructions** in `/config` changes this. A
+repository that keeps a `CLAUDE.md` can import the shared file with
+`@AGENTS.md`. The feature is flag-gated, so the first Claude session in a new
+Pod can miss `AGENTS.md`
+([Claude AGENTS.md support](https://code.claude.com/docs/en/memory#agents-md),
+[first session after install](https://code.claude.com/docs/en/env-vars#first-session-after-an-install-or-upgrade),
+[Codex AGENTS.md discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md)).
 
 Review-only requests produce findings without edits. Durable documentation
 uses official sources and describes current behavior. Replies use concise,
@@ -465,7 +485,6 @@ plain language, with lists or tables when helpful.
 Codex memory generation and injection are disabled, and `history.persistence`
 is `none`; this setting controls `history.jsonl`, not all session storage
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference)).
-They do not disable experimental same-task context notes/history.
 Claude auto memory is disabled and `cleanupPeriodDays` is `3`
 ([Claude settings](https://code.claude.com/docs/en/settings)). Persistent
 instructions belong in `operating-principles.md`.
