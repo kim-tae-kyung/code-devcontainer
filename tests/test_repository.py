@@ -211,5 +211,20 @@ class PlaywrightPinTests(unittest.TestCase):
             self.assertIn("Claude Code Playwright registration", result.stderr)
 
 
+class CodexSkillTests(unittest.TestCase):
+    def test_examples_redirect_stdin_and_keep_stderr(self):
+        # codex exec waits for EOF on a non-TTY stdin; the Bash tool's never closes.
+        for skill in ("codex", "codex-imagegen"):
+            text = (ROOT / ".claude" / "skills" / skill / "SKILL.md").read_text()
+            blocks = text.split("```bash\n")[1:]
+            calls = [line for block in blocks for line in block.split("```")[0].splitlines()
+                     if line.startswith("codex exec")]
+            self.assertTrue(calls, skill)
+            for call in calls:
+                with self.subTest(skill=skill, call=call[:60]):
+                    self.assertTrue("< /dev/null" in call or " - < " in call)
+                    self.assertNotRegex(call, r"2>\s*/dev/null")
+
+
 if __name__ == "__main__":
     unittest.main()
