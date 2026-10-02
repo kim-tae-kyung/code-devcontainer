@@ -83,6 +83,11 @@ The Claude `codex` and `codex-imagegen` skills use `codex exec` with
 reviews, use proper shell quoting, and inherit the configured sandbox policy
 rather than adding `-s` or bypass flags
 ([non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode)).
+Every call gets an explicit stdin (`< /dev/null` or a `- < file` prompt) and
+keeps stderr in a log file rather than `/dev/null`: when stdin is not a TTY,
+`codex exec` reads it to EOF to append to the prompt, and the Bash tool's
+stdin socket never closes, so an unredirected call hangs before starting.
+`tests/test_repository.py` checks the skills' examples for both redirects.
 `codex exec review` takes one target: `--uncommitted`, `--base`, `--commit`, or
 a custom prompt. Do not combine a target flag with a custom prompt
 ([CLI reference](https://learn.chatgpt.com/docs/cli/reference)).

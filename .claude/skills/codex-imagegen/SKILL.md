@@ -33,6 +33,10 @@ Rules, using the [Codex CLI options](https://learn.chatgpt.com/docs/cli/referenc
 - Quote literal absolute paths and prompts as shell arguments. For prompts
   containing apostrophes or several paragraphs, use a uniquely named temporary
   file as stdin with `codex exec ... - < /tmp/prompt-file`.
+- End argument prompts with `< /dev/null`. With a non-TTY stdin, Codex waits
+  for EOF to append stdin to the prompt, and the Bash tool's stdin never
+  closes. Send stderr to a uniquely named log (`2> /tmp/codex-imagegen-<slug>.log`),
+  never to `/dev/null`, and read its tail when a call fails or prints nothing.
 - `-C` must be the directory that contains the destination. Do not pass
   `-s`: use the image's configured full-access policy for trusted IaaS work.
 - The prompt must contain the literal text `$imagegen`. Protect it with single
@@ -51,13 +55,13 @@ Rules, using the [Codex CLI options](https://learn.chatgpt.com/docs/cli/referenc
 
 ```bash
 mkdir -p /abs/project/assets
-codex exec --ephemeral --skip-git-repo-check -C /abs/project/assets '$imagegen Create a 1536x1024 flat-style infographic titled "Onboarding in 3 steps" with three numbered boxes: "Sign up", "Verify email", "Create a project". White background, no other text. Copy the final PNG to /abs/project/assets/onboarding-infographic.png (create it, do not overwrite other files) and print that path as the last line.'
+codex exec --ephemeral --skip-git-repo-check -C /abs/project/assets '$imagegen Create a 1536x1024 flat-style infographic titled "Onboarding in 3 steps" with three numbered boxes: "Sign up", "Verify email", "Create a project". White background, no other text. Copy the final PNG to /abs/project/assets/onboarding-infographic.png (create it, do not overwrite other files) and print that path as the last line.' < /dev/null 2> /tmp/codex-imagegen-onboarding.log
 ```
 
 ## Edit
 
 ```bash
-codex exec -i /abs/project/assets/hero.png --ephemeral --skip-git-repo-check -C /abs/project/assets '$imagegen The attached image is the edit target. Change only the background to a warm sunset gradient and keep the subject unchanged. Save the result as /abs/project/assets/hero-v2.png (do not overwrite other files) and print that path as the last line.'
+codex exec -i /abs/project/assets/hero.png --ephemeral --skip-git-repo-check -C /abs/project/assets '$imagegen The attached image is the edit target. Change only the background to a warm sunset gradient and keep the subject unchanged. Save the result as /abs/project/assets/hero-v2.png (do not overwrite other files) and print that path as the last line.' < /dev/null 2> /tmp/codex-imagegen-hero.log
 ```
 
 ## Verify and hand off

@@ -30,6 +30,16 @@ Standing rules for every call, using the
 - Quote prompts and paths as shell arguments. Use a single-quoted prompt when
   possible; for literal apostrophes or long prompts, use a uniquely named
   temporary prompt file and `codex exec ... - < /tmp/prompt-file`.
+- Give every call an explicit stdin. End argument prompts and `review` targets
+  with `< /dev/null`; the prompt-file form already redirects stdin. When stdin
+  is not a TTY, Codex reads it to EOF and appends it to the prompt, and the
+  Bash tool's stdin never closes, so a call without a redirect waits forever
+  without starting.
+- Never send stderr to `/dev/null`; it carries Codex's progress and errors.
+  Redirect it to a uniquely named log (`2> /tmp/codex-<slug>.log`) so stdout
+  holds only the final message, and read the log's tail when a call fails or
+  prints nothing. If the active mode forbids writing the log, leave stderr
+  unredirected.
 - Do not pass `-s`. Codex applies the sandbox policy from its config
   (`sandbox_mode`), which this image sets to full access for trusted IaaS
   development. State the authorized scope in the prompt: say "do not modify
@@ -53,7 +63,7 @@ State the task with the context Codex needs (paths, constraints, expected
 output):
 
 ```bash
-codex exec --ephemeral --skip-git-repo-check 'Explain the retry logic in src/queue.ts and list the edge cases it misses. Do not modify any files.'
+codex exec --ephemeral --skip-git-repo-check 'Explain the retry logic in src/queue.ts and list the edge cases it misses. Do not modify any files.' < /dev/null 2> /tmp/codex-retry-logic.log
 ```
 
 When the user asked Codex to edit files, say so in the prompt and afterwards
@@ -69,7 +79,7 @@ its text in the prompt when the plan exists only in the conversation. Follow
 the active mode's write restrictions for any temporary prompt file.
 
 ```bash
-codex exec --ephemeral --skip-git-repo-check 'Review the implementation plan at /home/node/.claude/plans/example.md. Another agent wrote it for the repository in the current directory. Read the plan and the repository as needed. Do not modify any files. Report, in this order: a verdict of approve, approve with changes, or rework. Wrong or unverified assumptions, each with the file or command that disproves it. Missing steps, ordering problems, and risks. Anything simpler that meets the same goal. Be concrete and cite paths. Do not rewrite the plan.'
+codex exec --ephemeral --skip-git-repo-check 'Review the implementation plan at /home/node/.claude/plans/example.md. Another agent wrote it for the repository in the current directory. Read the plan and the repository as needed. Do not modify any files. Report, in this order: a verdict of approve, approve with changes, or rework. Wrong or unverified assumptions, each with the file or command that disproves it. Missing steps, ordering problems, and risks. Anything simpler that meets the same goal. Be concrete and cite paths. Do not rewrite the plan.' < /dev/null 2> /tmp/codex-plan-review.log
 ```
 
 Return the report verbatim under a "Codex review" heading. Then list which
@@ -83,9 +93,9 @@ Use Codex's native review for git changes. Global flags go before `review`.
 Pick exactly one target:
 
 ```bash
-codex exec --ephemeral --skip-git-repo-check review --uncommitted
-codex exec --ephemeral --skip-git-repo-check review --base main
-codex exec --ephemeral --skip-git-repo-check review --commit HEAD
+codex exec --ephemeral --skip-git-repo-check review --uncommitted < /dev/null 2> /tmp/codex-review.log
+codex exec --ephemeral --skip-git-repo-check review --base main < /dev/null 2> /tmp/codex-review.log
+codex exec --ephemeral --skip-git-repo-check review --commit HEAD < /dev/null 2> /tmp/codex-review.log
 ```
 
 A target flag and a custom prompt are mutually exclusive: `codex exec review`
@@ -93,7 +103,7 @@ rejects `--uncommitted 'focus on X'`. To steer the review, pass the
 instructions as the only target and name the scope inside them:
 
 ```bash
-codex exec --ephemeral --skip-git-repo-check review 'Review the uncommitted changes in this repository. Focus on error handling.'
+codex exec --ephemeral --skip-git-repo-check review 'Review the uncommitted changes in this repository. Focus on error handling.' < /dev/null 2> /tmp/codex-review.log
 ```
 
 Present the findings verbatim, then your assessment.
@@ -102,6 +112,9 @@ Present the findings verbatim, then your assessment.
 
 - If Codex reports that it is not logged in, tell the user to run `codex`
   once in the pod to sign in. Do not attempt to log in yourself.
+- If a call prints nothing for minutes, read the stderr log and confirm stdin
+  was redirected before retrying. A log ending in `Reading additional input
+  from stdin...` means Codex is waiting on stdin; rerun with `< /dev/null`.
 - Retry a transient network or rate-limit failure once after any supplied retry
   delay. If it persists, report the blocker and finish independent authorized
   work. Do not treat a failed delegation as completion of the original task.
