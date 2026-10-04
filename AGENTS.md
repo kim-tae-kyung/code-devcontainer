@@ -62,9 +62,10 @@ access. Codex uses `approval_policy = "never"` and
 [Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 The image runs the CLIs as `node`. Keep authorization and review-only behavior
 in the shared operating principles; CLI permission bypass does not enlarge the
-user's requested task scope. `bash_aliases` adds the matching bypass flags to
-interactive `claude` and `codex` invocations only; the Claude `codex` skill's
-`codex exec` calls run non-interactively without those aliases, so the rule
+user's requested task scope. `bash_aliases` adds the Claude bypass flag;
+`scripts/codex` adds `--yolo` and ensures Remote Control for interactive Codex
+sessions, including Herdr restore and direct container exec. It passes utility
+commands and non-interactive `codex exec` calls to the original CLI, so the rule
 below about not adding `-s` or bypass flags still applies to that skill.
 
 Herdr installs its session hooks after the baked settings. The smoke test

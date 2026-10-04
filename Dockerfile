@@ -155,6 +155,12 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 # Install Codex CLI
 RUN npm install -g @openai/codex
 
+# Preserve npm's executable and put the Remote Control wrapper first on PATH.
+# A real executable also covers kubectl exec, Herdr restore, and child shells.
+RUN sudo install -d /usr/local/libexec && \
+  sudo ln -s "$(command -v codex)" /usr/local/libexec/codex-cli
+COPY --chown=node:node --chmod=0755 scripts/codex ${HOME}/.local/bin/codex
+
 # Install code intelligence plugins.
 # https://code.claude.com/docs/en/discover-plugins
 RUN claude plugin marketplace add anthropics/claude-plugins-official && \
@@ -234,7 +240,10 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   jq -e '.env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF == "1"' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.leftArrowOpensAgents == false' ${HOME}/.claude.json >/dev/null && \
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
-  test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --yolo'" && \
+  test "$(command -v codex)" = "${HOME}/.local/bin/codex" && \
+  test "$(bash -ic 'type -t codex' 2>/dev/null)" = file && \
+  codex remote-control --help >/dev/null && \
+  /usr/local/libexec/codex-cli --help | grep -- '--remote' >/dev/null && \
   kubectl version --client && headless_shell --version && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \
@@ -251,6 +260,11 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   black --version && pylsp --help >/dev/null && \
   typescript-language-server --version && pyright --version && isort --version && \
   asciinema --version && agg --version
+
+# Exercise the installed wrapper on Linux with isolated CLI fixtures.
+COPY --chown=node:node tests/test_codex_remote.py /tmp/test_codex_remote.py
+RUN CODEX_WRAPPER=${HOME}/.local/bin/codex python3 /tmp/test_codex_remote.py && \
+  rm /tmp/test_codex_remote.py
 
 # Exercise the shipped editor configuration and real LSP/directory-diff flows.
 COPY --chown=node:node scripts/check_neovim.py /tmp/check_neovim.py

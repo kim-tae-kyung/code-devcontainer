@@ -153,6 +153,83 @@ install an automatic updater. The user-level locations make the skill
 available across projects in [Claude Code](https://code.claude.com/docs/en/skills#choose-where-skills-load)
 and [Codex](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
 
+### Automatic Codex Remote Control (experimental)
+
+Every interactive `codex` invocation in this image starts/reuses the local
+Remote Control daemon, then connects with `--remote unix:// --yolo`.
+This includes `codex resume`, `fork`, and `agents`. An executable wrapper on
+`PATH` covers Herdr panes, native restore commands, and direct
+`kubectl exec -- codex` calls; no separate command or shell alias is needed.
+The underlying CLI supports daemon management and local Unix-socket TUI
+connections ([official CLI reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli)).
+
+Authenticate and pair **inside the Pod or SSH server that owns the workspace**:
+
+```bash
+codex login --device-auth
+codex remote-control start
+codex remote-control pair
+# Enter the short-lived pairing code in ChatGPT mobile.
+herdr
+# In any pane, use the usual commands:
+codex
+codex resume <session-id>
+```
+
+After pairing, ordinary interactive launches automatically ensure Remote
+Control is running. Pairing remains an explicit user action; neither the
+image build nor the launcher creates pairing codes or copies Codex login
+credentials. The daemon, TUI, and pairing command must use the same OS user
+and `CODEX_HOME`. Headless pairing and mobile attachment are experimental,
+and account/workspace availability still applies
+([Remote availability](https://learn.chatgpt.com/docs/remote)).
+
+Daemon startup failure stops the invocation and displays the CLI error.
+The wrapper rejects `--no-daemon` and explicit endpoint overrides for
+interactive work, so it never silently starts an embedded writer. Help,
+version, login, configuration/management commands, `codex exec`, and
+non-interactive `codex review` go directly to the original CLI without
+interactive flags. These commands are not TUI sessions and do not support
+that remote connection mode. The image keeps the original npm executable at
+`/usr/local/libexec/codex-cli`; npm upgrades update its symlink target.
+
+Herdr owns the terminals, but its native Codex SessionStart hook depends on
+`HERDR_ENV`, `HERDR_SOCKET_PATH`, and `HERDR_PANE_ID` in the server's inherited
+environment ([Herdr hook](https://github.com/herdrdev/herdr/blob/master/src/integration/assets/codex/herdr-agent-state.sh),
+[Codex hook environment](https://github.com/openai/codex/blob/main/codex-rs/hooks/src/registry.rs)).
+The wrapper removes these variables for daemon-management commands only,
+preventing a newly started shared daemon from assigning all conversations
+to its first pane. Existing daemons retain their old environment; after their
+sessions finish, run `codex remote-control stop` and start again to clear that
+association. Pane-level native session tracking is not guaranteed. Herdr's
+restore command uses `codex resume`, which now routes through the wrapper,
+but restoration still depends on Herdr knowing the correct session ID.
+Use `codex resume <session-id>` explicitly when needed.
+
+A Pod restart ends running processes. This launcher creates an ephemeral
+Pod; add a volume for Codex state if login/conversations must survive Pod
+replacement, and recheck pairing on the replacement. Remote work uses the
+daemon's environment, so credentials or virtual environments added later in
+a pane should not be assumed to reach it.
+
+For a separate SSH server, reuse the wrapper with that server's original CLI:
+
+```bash
+# Capture the original path before installing the wrapper.
+unalias codex 2>/dev/null || true
+original_codex=$(command -v codex)
+install -d "$HOME/.local/bin"
+install -m 0755 scripts/codex "$HOME/.local/bin/codex"
+# Persist these exports in the server's shell startup configuration.
+export CODEX_CLI_BIN="$original_codex"
+export PATH="$HOME/.local/bin:$PATH"
+hash -r
+```
+
+Run this setup once against an unwrapped CLI; `CODEX_CLI_BIN` must not point
+to the wrapper. Existing Pods need the updated image or the same installation
+procedure. No macOS relay is part of this path.
+
 ### Editing and Git diff (Neovim)
 
 Open `nvim` in a Herdr pane. The image sets `EDITOR`, `VISUAL`, and Git's system
@@ -258,12 +335,12 @@ git config --global core.editor nvim
 
 Keep zsh as the macOS shell. Set `EDITOR=nvim` and `VISUAL=nvim` in the shell
 startup configuration, and put `~/.cargo/bin`, Go's `bin` directory, and
-`~/.local/bin` on `PATH`. Add the same interactive aliases as `bash_aliases`
-if you want the agents to skip prompts locally:
+`~/.local/bin` on `PATH`. Add the Claude alias from `bash_aliases` and install the Codex wrapper above
+if you want the same agent invocation behavior locally:
 
 ```zsh
 alias claude='claude --dangerously-skip-permissions'
-alias codex='codex --yolo'
+# For automatic Codex Remote Control, install the wrapper as described above.
 ```
 
 Keep `~/.cargo/bin` ahead of a standalone Homebrew
@@ -370,14 +447,14 @@ is not an assumption or a control provided by this repository.
   ([Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 - **Playwright** receives `--no-sandbox` in both MCP registrations
   ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
-- **Interactive aliases** in `~/.bash_aliases` run `claude` as
-  `claude --dangerously-skip-permissions` and `codex` as `codex --yolo`. Each
-  flag is the documented equivalent of the baked configuration above, so the
-  aliases make the mode explicit in a pane without changing it
+- **Interactive launch flags**: the Bash alias runs `claude` as
+  `claude --dangerously-skip-permissions`; the Codex executable wrapper adds
+  `--yolo` to interactive Remote Control sessions. Each flag is the documented
+  equivalent of the baked configuration above
   ([Claude flag equivalence](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode),
-  [Codex `--yolo`](https://learn.chatgpt.com/docs/cli/reference)). Aliases
-  apply only to interactive Bash; the `codex exec` calls that Claude's `codex`
-  skill runs through its Bash tool do not expand them.
+  [Codex `--yolo`](https://learn.chatgpt.com/docs/cli/reference)). The Claude
+  alias applies only to interactive Bash. The Codex wrapper passes
+  `codex exec` calls through without adding interactive flags.
 
 The CLIs run as `node`. Kubernetes API authority depends on the Pod's selected
 ServiceAccount and cluster RBAC. The launcher retains token-mount defaults and
@@ -396,7 +473,8 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`
 - `vimrc` → `~/.vimrc`
-- `bash_aliases` → `~/.bash_aliases` (interactive `claude` and `codex` bypass aliases)
+- `bash_aliases` → `~/.bash_aliases` (interactive Claude permission bypass)
+- `scripts/codex` → `~/.local/bin/codex` (automatic interactive Remote Control)
 - `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
@@ -550,7 +628,10 @@ kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
 
-ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reached through `kubectl exec`. For this workflow, Codex alerts rely on Herdr's terminal toast and the forwarded bell; connecting a Codex environment to ChatGPT Remote requires a supported desktop or SSH host.
+Interactive `codex` commands automatically use the experimental headless
+Remote Control path described above. Herdr terminal notifications remain
+available independently. Mobile pairing, active-session attachment, and native
+Herdr restoration require verification on the actual Pod and mobile client.
 
 ## Build & Push
 

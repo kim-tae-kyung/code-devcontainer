@@ -1,0 +1,73 @@
+#!/bin/bash
+# Interactive sessions always use the local Remote Control app-server.
+set -euo pipefail
+
+# The image links this path to the original npm executable before installing
+# this wrapper. Separate SSH installations may supply their original CLI path.
+cli="${CODEX_CLI_BIN:-/usr/local/libexec/codex-cli}"
+if [[ ! -x "$cli" || "$cli" -ef "$0" ]]; then
+    echo "codex: original CLI missing or points to the wrapper: $cli" >&2
+    exit 127
+fi
+
+# Find the command after global options, without interpreting prompt text.
+# Value-taking flags must be skipped so e.g. '-C exec' stays an interactive TUI.
+mode=interactive
+value_pending=false
+for arg in "$@"; do
+    if $value_pending; then
+        value_pending=false
+        continue
+    fi
+    case "$arg" in
+        -h|--help|-V|--version) mode=utility; break ;;
+        --) break ;;
+        -c|--config|--enable|--disable|-i|--image|-m|--model|--local-provider|-p|--profile|-s|--sandbox|-C|--cd|--add-dir|-a|--ask-for-approval|--remote|--remote-auth-token-env)
+            value_pending=true ;;
+        -*) ;;
+        remote-control) mode=control; break ;;
+        resume|fork|agents|archive|delete|unarchive) break ;;
+        exec|e|review|login|logout|mcp|plugin|app-server|app|completion|update|doctor|sandbox|debug|apply|a|queue|migrate-rollouts|cloud|exec-server|features|help)
+            mode=utility; break ;;
+        *) break ;;
+    esac
+done
+
+if [[ "$mode" == utility ]]; then
+    exec "$cli" "$@"
+fi
+
+# The shared daemon must not inherit the identity of its first Herdr pane.
+if [[ "$mode" == control ]]; then
+    unset HERDR_ENV HERDR_SOCKET_PATH HERDR_PANE_ID
+    exec "$cli" "$@"
+fi
+
+# Do not let a TUI invocation switch to an embedded writer or a different host.
+bypass=true
+value_pending=false
+for arg in "$@"; do
+    if $value_pending; then
+        value_pending=false
+        continue
+    fi
+    case "$arg" in
+        --) break ;;
+        --no-daemon|--remote|--remote=*|--remote-auth-token-env|--remote-auth-token-env=*)
+            echo "codex: interactive sessions always use the local Remote Control daemon; $arg cannot override it" >&2
+            exit 2 ;;
+        -h|--help) exec "$cli" "$@" ;;
+        --yolo|--dangerously-bypass-approvals-and-sandbox) bypass=false ;;
+        -c|--config|--enable|--disable|-i|--image|-m|--model|--local-provider|-p|--profile|-s|--sandbox|-C|--cd|--add-dir|-a|--ask-for-approval)
+            value_pending=true ;;
+    esac
+done
+
+(
+    unset HERDR_ENV HERDR_SOCKET_PATH HERDR_PANE_ID
+    "$cli" remote-control start
+) > /dev/null
+if $bypass; then
+    exec "$cli" --remote unix:// --yolo "$@"
+fi
+exec "$cli" --remote unix:// "$@"
