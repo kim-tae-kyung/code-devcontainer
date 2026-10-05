@@ -62,10 +62,16 @@ access. Codex uses `approval_policy = "never"` and
 [Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 The image runs the CLIs as `node`. Keep authorization and review-only behavior
 in the shared operating principles; CLI permission bypass does not enlarge the
-user's requested task scope. `bash_aliases` adds the matching bypass flags to
-interactive `claude` and `codex` invocations only; the Claude `codex` skill's
-`codex exec` calls run non-interactively without those aliases, so the rule
-below about not adding `-s` or bypass flags still applies to that skill.
+user's requested task scope. `bash_aliases` adds the Claude bypass flag. Codex
+needs no flag because its config already grants full access.
+
+Interactive Codex attaches to its shared app-server daemon by default.
+`scripts/pod-init` starts that daemon with remote control enabled, from an
+environment cleared of `HERDR_*`, so the daemon carries no pane identity. Use
+the CLI's own behavior. Do not put a wrapper, alias, or PATH shim in front of
+`codex` or `claude`: a wrapper has to parse the CLI's arguments and breaks
+when a release adds a subcommand. The smoke test asserts the native behavior
+this relies on (`daemon_auto_start`).
 
 Herdr installs its session hooks after the baked settings. The smoke test
 checks that its Claude and Codex integrations are current and that Claude's

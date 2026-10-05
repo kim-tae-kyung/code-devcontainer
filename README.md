@@ -24,7 +24,7 @@ A container image for AI-assisted software development, bundling the Anthropic C
 Run the launcher on the Kubernetes control-plane host with `kubectl` and `jq`
 available, then connect to the long-lived Pod with `kubectl exec`. The launcher
 creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
-`${HOME}/.gitconfig` when present, and prints the connection command
+`${HOME}/.gitconfig` when present, and prints the connection commands
 ([kubectl exec](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/)):
 
 ```bash
@@ -32,8 +32,12 @@ creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
 # (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
 ./run-k8s-daemon-example.sh
 
-# Connect directly to Herdr (the launcher prints this line, adding
-# `env TERM_PROGRAM=...` when the launcher's shell has it set)
+# First connection: sign in, start Codex Remote Control, then open Herdr
+# (the launcher prints these lines, adding `env TERM_PROGRAM=...` when the
+# launcher's shell has it set)
+kubectl exec -it devcontainer-<timestamp> -- pod-init
+
+# Reconnect to Herdr
 kubectl exec -it devcontainer-<timestamp> -- herdr
 
 # Optional plain shell
@@ -64,23 +68,13 @@ and regular files use mode `600`. It also copies `${HOME}/.gitconfig` to
 is skipped independently. If copying or permission setup fails, the launcher
 exits with an error before printing the connection command.
 
-Authenticate the GitHub CLI, Claude Code, and Codex inside the running
-container.
-
-```bash
-# GitHub CLI: https://cli.github.com/manual/gh_auth_login
-gh auth login
-
-# Claude Code: open the printed URL locally and paste the login code
-claude auth login
-
-# Codex CLI: sign in from a remote/headless Pod
-codex login --device-auth
-```
-
-For Claude Code, follow the [container login flow](https://code.claude.com/docs/en/troubleshoot-install#oauth-login-fails-in-wsl2-ssh-or-containers).
-For Codex, enable device-code login for your account or workspace and follow
-[headless authentication](https://learn.chatgpt.com/docs/auth#login-on-headless-devices).
+`pod-init` signs in Claude Code and Codex (see [First connection](#first-connection-pod-init)).
+For Claude Code, open the printed URL locally and paste the login code
+([container login flow](https://code.claude.com/docs/en/troubleshoot-install#oauth-login-fails-in-wsl2-ssh-or-containers)).
+For Codex, enable device-code login for your account or workspace
+([headless authentication](https://learn.chatgpt.com/docs/auth#login-on-headless-devices)).
+Sign in the GitHub CLI yourself when you need it
+([`gh auth login`](https://cli.github.com/manual/gh_auth_login)).
 The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
 its API permissions come from your cluster's RBAC, not from the launcher's
 host credentials ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
@@ -152,6 +146,40 @@ Rerun this procedure to refresh local skills and integrations; it does not
 install an automatic updater. The user-level locations make the skill
 available across projects in [Claude Code](https://code.claude.com/docs/en/skills#choose-where-skills-load)
 and [Codex](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
+
+### First connection (pod-init)
+
+Connect to a new Pod with `pod-init` once. It runs from the `kubectl exec`
+shell, outside Herdr, and does the following in order. It skips each sign-in
+that is already done:
+
+1. `claude auth login`, unless `claude auth status` reports a login.
+2. `codex login --device-auth`, unless `codex login status` reports a login.
+3. `codex remote-control start`, which starts Codex's shared app-server daemon
+   with remote control enabled.
+4. `codex remote-control pair`, which prints a short-lived code to enter in
+   ChatGPT mobile.
+5. `exec herdr`.
+
+The one manual step left is in the first Codex session: open `/hooks` and
+trust Herdr's `SessionStart` hook (see [Configuration](#configuration)).
+
+Interactive `codex` attaches to the shared daemon by default
+(`daemon_auto_start`; `--no-daemon` opts out), so `codex`, `codex resume`,
+and Herdr's restore commands need no wrapper or extra flags. The daemon keeps
+`remoteControlEnabled` in `~/.codex/app-server-daemon/settings.json`. When a
+later `codex` restarts the daemon, it comes back with remote control on. The
+smoke test fails the build if Codex stops shipping `daemon_auto_start` as a
+stable default ([CLI reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli),
+[Remote availability](https://learn.chatgpt.com/docs/remote)).
+
+The daemon inherits the environment of whatever starts it. Herdr's Codex hook
+reads `HERDR_ENV`, `HERDR_SOCKET_PATH`, and `HERDR_PANE_ID` from that
+environment, so a daemon started inside a pane would attach every later
+session to that pane ([Herdr hook](https://github.com/herdrdev/herdr/blob/master/src/integration/assets/codex/herdr-agent-state.sh)).
+`pod-init` clears every `HERDR_*` variable before it starts the daemon. If the
+daemon ever restarts from inside a pane, run `codex remote-control stop`, then
+`pod-init` again from a plain `kubectl exec -- bash` shell.
 
 ### Editing and Git diff (Neovim)
 
@@ -258,12 +286,11 @@ git config --global core.editor nvim
 
 Keep zsh as the macOS shell. Set `EDITOR=nvim` and `VISUAL=nvim` in the shell
 startup configuration, and put `~/.cargo/bin`, Go's `bin` directory, and
-`~/.local/bin` on `PATH`. Add the same interactive aliases as `bash_aliases`
-if you want the agents to skip prompts locally:
+`~/.local/bin` on `PATH`. Add the Claude alias from `bash_aliases` if you want
+the same Claude Code invocation locally:
 
 ```zsh
 alias claude='claude --dangerously-skip-permissions'
-alias codex='codex --yolo'
 ```
 
 Keep `~/.cargo/bin` ahead of a standalone Homebrew
@@ -370,14 +397,12 @@ is not an assumption or a control provided by this repository.
   ([Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 - **Playwright** receives `--no-sandbox` in both MCP registrations
   ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
-- **Interactive aliases** in `~/.bash_aliases` run `claude` as
-  `claude --dangerously-skip-permissions` and `codex` as `codex --yolo`. Each
-  flag is the documented equivalent of the baked configuration above, so the
-  aliases make the mode explicit in a pane without changing it
-  ([Claude flag equivalence](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode),
-  [Codex `--yolo`](https://learn.chatgpt.com/docs/cli/reference)). Aliases
-  apply only to interactive Bash; the `codex exec` calls that Claude's `codex`
-  skill runs through its Bash tool do not expand them.
+- **Interactive launch flags**: the Bash alias runs `claude` as
+  `claude --dangerously-skip-permissions`, the documented equivalent of the
+  baked `bypassPermissions` mode, and applies only to interactive Bash
+  ([Claude flag equivalence](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
+  Codex needs no flag: `approval_policy` and `sandbox_mode` in its config
+  already match `--yolo` ([Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference)).
 
 The CLIs run as `node`. Kubernetes API authority depends on the Pod's selected
 ServiceAccount and cluster RBAC. The launcher retains token-mount defaults and
@@ -396,14 +421,15 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`
 - `vimrc` → `~/.vimrc`
-- `bash_aliases` → `~/.bash_aliases` (interactive `claude` and `codex` bypass aliases)
+- `bash_aliases` → `~/.bash_aliases` (interactive Claude permission bypass)
+- `scripts/pod-init` → `/usr/local/bin/pod-init` (first-connection sign-in and Codex Remote Control)
 - `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the latest upstream `herdr` skill to both user-level skill directories.
-Codex skips a hook until you trust it, and `--yolo` does not bypass that check.
+Codex skips a hook until you trust it, and full-access settings do not bypass that check.
 On the first Codex start in a new Pod, open `/hooks` when prompted and trust
 Herdr's `SessionStart` hook; Codex saves the trust in `~/.codex/config.toml`
 and asks again only if the hook changes
@@ -550,7 +576,9 @@ kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
 
-ChatGPT Remote does not attach directly to an arbitrary Codex CLI process reached through `kubectl exec`. For this workflow, Codex alerts rely on Herdr's terminal toast and the forwarded bell; connecting a Codex environment to ChatGPT Remote requires a supported desktop or SSH host.
+Codex Remote Control runs on the shared app-server daemon that `pod-init`
+starts. Like Claude's, it connects outbound and needs no inbound Service. Herdr
+terminal notifications work independently of it.
 
 ## Build & Push
 

@@ -1,0 +1,25 @@
+#!/bin/bash
+# First connection to a new Pod: sign in both agents, start Codex Remote Control,
+# then open Herdr. Each step is skipped when already done, so rerunning is safe.
+set -euo pipefail
+
+# The shared Codex daemon inherits this environment; a Herdr pane identity here
+# would attach every later Codex session to that one pane.
+in_herdr=${HERDR_ENV:-}
+unset "${!HERDR_@}"
+
+# https://code.claude.com/docs/en/troubleshoot-install#oauth-login-fails-in-wsl2-ssh-or-containers
+claude auth status >/dev/null 2>&1 || claude auth login
+# https://learn.chatgpt.com/docs/auth#login-on-headless-devices
+codex login status >/dev/null 2>&1 || codex login --device-auth
+
+# The daemon records remote control in its settings, so later restarts keep it.
+# Plain `codex` attaches to this daemon.
+codex remote-control start
+codex remote-control pair
+
+echo
+echo "Remaining manual step: on the first Codex start, open /hooks and trust Herdr's SessionStart hook."
+if [[ -z "$in_herdr" ]]; then
+    exec herdr
+fi

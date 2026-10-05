@@ -132,6 +132,7 @@ COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 COPY --chown=node:node bash_aliases           ${HOME}/.bash_aliases
 COPY --chown=node:node nvim/                  ${HOME}/.config/nvim/
 COPY --chmod=0755 scripts/git-ndiff           /usr/local/bin/git-ndiff
+COPY --chmod=0755 scripts/pod-init            /usr/local/bin/pod-init
 
 # Ship agent skills to each CLI's user-level discovery directory.
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
@@ -234,7 +235,11 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   jq -e '.env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF == "1"' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.leftArrowOpensAgents == false' ${HOME}/.claude.json >/dev/null && \
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
-  test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --yolo'" && \
+  codex features list | grep -E '^daemon_auto_start +stable +true' >/dev/null && \
+  codex remote-control --help >/dev/null && \
+  bash -n /usr/local/bin/pod-init && \
+  ! codex login status >/dev/null 2>&1 && \
+  ! claude auth status >/dev/null 2>&1 && \
   kubectl version --client && headless_shell --version && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \
