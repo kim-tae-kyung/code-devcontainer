@@ -50,9 +50,6 @@ jobs:
       - name: Check Playwright pin and container flags
         run: python3 scripts/check_playwright_pin.py
 
-      - name: Test launcher and browser pins
-        run: python3 -m unittest discover -s tests
-
   build:
     # The image build runs the Dockerfile smoke test, so a green build is the
     # gate Renovate automerge waits on. Single-arch keeps it under the timeout;

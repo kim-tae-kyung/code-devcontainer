@@ -2,6 +2,12 @@
 
 A container image for AI-assisted software development, bundling the Anthropic Claude Code and OpenAI Codex CLIs with the tooling an agent needs. It is built on a Node.js/TypeScript base and is run primarily as a long-lived **Kubernetes pod** (or any local Docker/Podman container).
 
+**Ephemeral by design; no backward compatibility.** Each build produces a new
+image, and a Pod is disposable: to pick up a change, start a new Pod from the
+new image. Logins, pairing, sessions, and other state live only in the Pod and
+end with it. Changes to this repository do not migrate, shim, or support
+existing Pods or older CLI releases.
+
 ## Features
 
 - **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24` (digest-pinned)
@@ -44,13 +50,10 @@ kubectl exec -it devcontainer-<timestamp> -- herdr
 kubectl exec -it devcontainer-<timestamp> -- /bin/bash
 ```
 
-Add `-n NAMESPACE` to either command when using a non-default namespace.
+Add `-n NAMESPACE` to any of these commands when using a non-default namespace.
 Herdr can run directly under `kubectl exec -it`; an initial Bash session is not
 required. The image exports `SHELL=/bin/bash`, so Herdr starts new interactive
 panes with Bash ([Herdr terminal defaults](https://herdr.dev/docs/configuration/#terminal-defaults)).
-This image default applies to newly created containers after the updated image
-is published; existing Pods keep their original environment. In an existing
-`sh` pane, run `exec /bin/bash` to switch that pane to Bash.
 
 ### Local container (Docker/Podman)
 
@@ -101,9 +104,7 @@ processes running while the container stays alive. Stopping or replacing the
 container ends those processes; restoring a saved layout or agent conversation
 requires the corresponding state files to survive
 ([Herdr session state](https://herdr.dev/docs/session-state/)). Use
-`herdr server stop` to terminate the session and its pane processes. Direct
-installs track the stable channel and can be refreshed in a running container
-with `herdr update`.
+`herdr server stop` to terminate the session and its pane processes.
 
 The image installs Herdr's official Claude Code and Codex integrations for
 native agent-session restoration. It also installs the latest official `herdr`
@@ -584,7 +585,7 @@ terminal notifications work independently of it.
 
 ### Continuous integration
 
-`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, checks the Playwright pin and flags, and runs focused launcher and browser-pin tests. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, and checks the Playwright pin and flags. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
 
 The image build also runs `scripts/check_neovim.py`: real language-server
 connections and navigation/diagnostics for all four languages, plus Git diff

@@ -14,6 +14,14 @@ locally (`podman build --format docker --platform linux/arm64 .`) when a change
 touches the Dockerfile. Podman's default OCI format ignores the Dockerfile's
 `SHELL` instruction, so its Bash-only `RUN` steps fail without `--format docker`.
 
+## No backward compatibility
+
+Every build produces a new image, and Pods run from it are disposable: replace
+a Pod rather than upgrade it. Change behavior in place. Do not add migrations,
+compatibility shims, fallbacks for older CLI releases, or notes about existing
+Pods. When a tool changes its interface, update this repository to match and let
+the smoke test fail loudly on anything it relies on.
+
 ## Keep the Playwright MCP pin aligned
 
 Two files name the server version: `PLAYWRIGHT_MCP_VERSION` in the Dockerfile
@@ -93,7 +101,6 @@ Every call gets an explicit stdin (`< /dev/null` or a `- < file` prompt) and
 keeps stderr in a log file rather than `/dev/null`: when stdin is not a TTY,
 `codex exec` reads it to EOF to append to the prompt, and the Bash tool's
 stdin socket never closes, so an unredirected call hangs before starting.
-`tests/test_repository.py` checks the skills' examples for both redirects.
 `codex exec review` takes one target: `--uncommitted`, `--base`, `--commit`, or
 a custom prompt. Do not combine a target flag with a custom prompt
 ([CLI reference](https://learn.chatgpt.com/docs/cli/reference)).
