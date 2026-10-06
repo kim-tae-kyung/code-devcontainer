@@ -4,6 +4,11 @@ vim.cmd.packadd('nvim.difftool')
 -- Git's temporary comparison trees are for review, not project analysis.
 -- The -d option is already set before init.lua runs.
 if vim.o.diff then
+  -- Keep wrapping when DiffTool recreates diff windows or switches files.
+  -- https://neovim.io/doc/user/options/#'diffopt'
+  vim.opt.diffopt:append('followwrap')
+  vim.opt.wrap = true
+  vim.opt.linebreak = true
   return
 end
 

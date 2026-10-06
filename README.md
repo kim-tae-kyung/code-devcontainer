@@ -204,7 +204,9 @@ git ndiff HEAD -- path/to/dir  # Compare a revision, restricted to a path
 command-scoped tool definition. It leaves the copied `~/.gitconfig` and other
 diff-tool settings intact. Use `:cnext` / `:cprevious` to move through the
 changed-file list, `]c` / `[c` for differences within a file, `Ctrl-w w` to
-switch windows, and `:qa` to quit.
+switch windows, and `:qa` to quit. Diff windows wrap long lines at word
+boundaries by default (`wrap` and `linebreak`, with
+[`followwrap` in `diffopt`](https://neovim.io/doc/user/options/#'diffopt')).
 
 This is an editable content comparison, not a staging interface. Saving a
 worktree-backed buffer can change the working file, including in a staged
