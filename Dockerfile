@@ -150,6 +150,22 @@ RUN KUBECTL_VERSION="$(curl -fsSL https://dl.k8s.io/release/stable.txt)" && \
   sudo install -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
   rm /tmp/kubectl /tmp/kubectl.sha256
 
+# Install the latest stable GitLab CLI for the target architecture and verify it.
+# https://gitlab.com/gitlab-org/cli/-/releases
+RUN GLAB_RELEASE="$(curl -fsSL https://gitlab.com/api/v4/projects/gitlab-org%2Fcli/releases/permalink/latest)" && \
+  GLAB_VERSION="$(jq -er '.tag_name | ltrimstr("v")' <<< "${GLAB_RELEASE}")" && \
+  GLAB_ARCHIVE="glab_${GLAB_VERSION}_linux_${TARGETARCH}.tar.gz" && \
+  GLAB_URL="$(jq -er --arg name "${GLAB_ARCHIVE}" '.assets.links[] | select(.name == $name) | .direct_asset_url' <<< "${GLAB_RELEASE}")" && \
+  GLAB_CHECKSUMS_URL="$(jq -er '.assets.links[] | select(.name == "checksums.txt") | .direct_asset_url' <<< "${GLAB_RELEASE}")" && \
+  mkdir /tmp/glab && \
+  curl -fsSL "${GLAB_URL}" -o "/tmp/glab/${GLAB_ARCHIVE}" && \
+  curl -fsSL "${GLAB_CHECKSUMS_URL}" -o /tmp/glab/checksums.txt && \
+  GLAB_SHA256="$(awk -v name="${GLAB_ARCHIVE}" '$2 == name {print $1}' /tmp/glab/checksums.txt)" && \
+  echo "${GLAB_SHA256}  /tmp/glab/${GLAB_ARCHIVE}" | sha256sum --check && \
+  tar -xzf "/tmp/glab/${GLAB_ARCHIVE}" -C /tmp/glab bin/glab && \
+  sudo install -m 0755 /tmp/glab/bin/glab /usr/local/bin/glab && \
+  rm -rf /tmp/glab
+
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
@@ -240,6 +256,7 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   bash -n /usr/local/bin/pod-init && \
   ! codex login status >/dev/null 2>&1 && \
   ! claude auth status >/dev/null 2>&1 && \
+  glab --version && glab auth login --help >/dev/null && glab api --help >/dev/null && \
   kubectl version --client && headless_shell --version && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \

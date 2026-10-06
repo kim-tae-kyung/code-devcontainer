@@ -17,7 +17,7 @@ existing Pods or older CLI releases.
   - `@openai/codex` — installed via npm
 - **Browser server** (pre-configured for **both** Claude Code and Codex):
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (both CLIs run the same pinned local MCP server)
-- **Development Tools**: `git`, `gh`, `jq`, `ripgrep`, `nvim` (default editor), `vim`, `tree`, and common networking utilities. The image installs the latest stable Neovim from its [official release assets](https://github.com/neovim/neovim/releases), verifies the SHA-256 digest, and requires version 0.12 or newer. It also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/).
+- **Development Tools**: `git`, `gh`, `glab`, `jq`, `ripgrep`, `nvim` (default editor), `vim`, `tree`, and common networking utilities. The image installs the latest stable Neovim from its [official release assets](https://github.com/neovim/neovim/releases), verifies the SHA-256 digest, and requires version 0.12 or newer. It also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/), and the latest stable GitLab CLI from its [official releases](https://gitlab.com/gitlab-org/cli/-/releases) with SHA-256 verification.
 - **Terminal multiplexers**: the latest stable Herdr release as the primary workspace, with Claude Code and Codex session integrations. tmux remains installed with its default settings for optional use and demo capture.
 - **LSP Support**: `gopls`, `pyright`, `typescript-language-server`, and `rust-analyzer` are connected to Neovim's native LSP client and Claude Code's official code-intelligence plugins. `pylsp` remains available as an optional Python server. TypeScript stays on the latest 6.x release for compatibility with the [language server](https://github.com/typescript-language-server/typescript-language-server#installing); Rust includes `rust-src` and `rustfmt`.
 - **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
@@ -78,6 +78,17 @@ For Codex, enable device-code login for your account or workspace
 ([headless authentication](https://learn.chatgpt.com/docs/auth#login-on-headless-devices)).
 Sign in the GitHub CLI yourself when you need it
 ([`gh auth login`](https://cli.github.com/manual/gh_auth_login)).
+For GitLab, run `glab auth login`, or specify your self-managed instance:
+
+```bash
+glab auth login --hostname gitlab.example.com
+```
+
+Choose Token and provide a personal access token with `api` and
+`write_repository` scopes. When the container has no operating-system keyring,
+`glab` stores credentials in its configuration file and prints a warning
+([GitLab CLI authentication](https://docs.gitlab.com/cli/authentication/)).
+
 The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
 its API permissions come from your cluster's RBAC, not from the launcher's
 host credentials ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
