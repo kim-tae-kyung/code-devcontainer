@@ -198,8 +198,19 @@ daemon ever restarts from inside a pane, run `codex remote-control stop`, then
 Open `nvim` in a Herdr pane. The image sets `EDITOR`, `VISUAL`, and Git's system
 `core.editor` to `nvim`; explicit user Git configuration takes precedence.
 Vim and its existing `.vimrc` remain available. Neovim uses its own defaults
-for indentation, colors, recovery files, and editing keys, with only native
-DiffTool and LSP configuration added.
+for indentation, colors, recovery files, and editing keys, with clipboard,
+native DiffTool, and LSP configuration added.
+
+Select text with `v`, `V`, or a mouse drag, then press `y`; use `yy` to copy a
+whole line. Paste into a macOS application with `Cmd+V`. A mouse drag selects
+text inside Neovim; it does not copy it by itself.
+
+On macOS, `clipboard=unnamedplus` connects ordinary register operations to
+`pbcopy`/`pbpaste`. In the Pod, ordinary yanks send the text to the outer
+terminal with Neovim's built-in [OSC 52 copy function](https://neovim.io/doc/user/provider/#clipboard-osc52).
+The outer terminal must allow clipboard writes. Pod `p` uses Neovim's local
+register; use `Cmd+V` to insert text copied from a macOS application. Clipboard
+copying also works in `git ndiff` windows.
 
 ```bash
 nvim path/to/file

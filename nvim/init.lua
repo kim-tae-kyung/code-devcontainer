@@ -1,3 +1,20 @@
+-- macOS uses pbcopy/pbpaste; Pods send yanks to the outer terminal via OSC 52.
+-- https://neovim.io/doc/user/provider/#clipboard-osc52
+if vim.fn.has('mac') == 1 then
+  vim.opt.clipboard:append('unnamedplus')
+else
+  local copy = require('vim.ui.clipboard.osc52').copy('+')
+  vim.api.nvim_create_autocmd('TextYankPost', {
+    group = vim.api.nvim_create_augroup('SystemClipboard', { clear = true }),
+    callback = function()
+      -- Keep p local and avoid waiting for terminal clipboard-read permission.
+      if vim.v.event.operator == 'y' and vim.v.event.regname == '' then
+        copy(vim.v.event.regcontents)
+      end
+    end,
+  })
+end
+
 -- Optional built-in plugin: https://neovim.io/doc/user/plugins/#difftool
 vim.cmd.packadd('nvim.difftool')
 
