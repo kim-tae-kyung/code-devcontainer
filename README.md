@@ -197,20 +197,19 @@ daemon ever restarts from inside a pane, run `codex remote-control stop`, then
 
 Open `nvim` in a Herdr pane. The image sets `EDITOR`, `VISUAL`, and Git's system
 `core.editor` to `nvim`; explicit user Git configuration takes precedence.
-Vim and its existing `.vimrc` remain available. Neovim uses its own defaults
-for indentation, colors, recovery files, and editing keys, with clipboard,
-native DiffTool, and LSP configuration added.
+Vim and its `.vimrc` remain available. Neovim enables line numbers, persistent
+undo, and four-space indentation; Go uses tabs and JavaScript/TypeScript use
+two spaces. Project [`.editorconfig`](https://neovim.io/doc/user/plugins/#editorconfig)
+settings take precedence.
 
-Select text with `v`, `V`, or a mouse drag, then press `y`; use `yy` to copy a
-whole line. Paste into a macOS application with `Cmd+V`. A mouse drag selects
-text inside Neovim; it does not copy it by itself.
-
-On macOS, `clipboard=unnamedplus` connects ordinary register operations to
-`pbcopy`/`pbpaste`. In the Pod, ordinary yanks send the text to the outer
-terminal with Neovim's built-in [OSC 52 copy function](https://neovim.io/doc/user/provider/#clipboard-osc52).
-The outer terminal must allow clipboard writes. Pod `p` uses Neovim's local
-register; use `Cmd+V` to insert text copied from a macOS application. Clipboard
-copying also works in `git ndiff` windows.
+Select text with `v`, `V`, or a mouse drag, then press `y`; `yy` copies a line.
+With Ghostty, ordinary yanks use the built-in [OSC 52 copy function](https://neovim.io/doc/user/provider/#clipboard-osc52)
+in local macOS sessions, Pod/SSH connections, and Herdr panes, including `git ndiff`.
+Paste outside Neovim with `Cmd+V`. Within Neovim, `p` uses local registers;
+`Cmd+V` inserts the macOS clipboard. Deletes and named-register yanks keep the
+system clipboard intact. In Ghostty, allow `clipboard-write`; use
+[`Shift` + drag](https://ghostty.org/docs/config/reference#mouse-shift-capture)
+for terminal selection, or ordinary drag followed by `y` for Neovim selection.
 
 ```bash
 nvim path/to/file

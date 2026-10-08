@@ -1,19 +1,25 @@
--- macOS uses pbcopy/pbpaste; Pods send yanks to the outer terminal via OSC 52.
+vim.opt.number = true
+vim.opt.undofile = true
+vim.opt.expandtab = true
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = -1
+
+-- Ordinary yanks reach the outer terminal; p and deletes keep local registers.
 -- https://neovim.io/doc/user/provider/#clipboard-osc52
-if vim.fn.has('mac') == 1 then
-  vim.opt.clipboard:append('unnamedplus')
-else
-  local copy = require('vim.ui.clipboard.osc52').copy('+')
-  vim.api.nvim_create_autocmd('TextYankPost', {
-    group = vim.api.nvim_create_augroup('SystemClipboard', { clear = true }),
-    callback = function()
-      -- Keep p local and avoid waiting for terminal clipboard-read permission.
-      if vim.v.event.operator == 'y' and vim.v.event.regname == '' then
-        copy(vim.v.event.regcontents)
-      end
-    end,
-  })
-end
+local copy = require('vim.ui.clipboard.osc52').copy('+')
+vim.api.nvim_create_autocmd('TextYankPost', {
+  group = vim.api.nvim_create_augroup('SystemClipboard', { clear = true }),
+  callback = function()
+    if vim.v.event.operator == 'y' and vim.v.event.regname == '' then
+      copy(vim.v.event.regcontents)
+    end
+  end,
+})
+
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'javascript', 'javascriptreact', 'typescript', 'typescriptreact' },
+  callback = function() vim.bo.shiftwidth = 2 end,
+})
 
 -- Optional built-in plugin: https://neovim.io/doc/user/plugins/#difftool
 vim.cmd.packadd('nvim.difftool')
