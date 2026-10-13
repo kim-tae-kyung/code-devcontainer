@@ -498,8 +498,9 @@ Codex sets `model_reasoning_effort = "high"` for ordinary turns and
 at each model's default, which is `medium` for Opus 5.5
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference),
 [Claude effort](https://code.claude.com/docs/en/model-config#adjust-effort-level)).
-Codex also sets a 512K context window and a 430K compaction threshold. These
-are tuning choices, not official optimal values.
+Codex leaves the context window and automatic compaction threshold unset,
+so they follow the selected model's defaults
+([Codex configuration defaults](https://learn.chatgpt.com/docs/config-file/config-sample)).
 
 The shared operating principles stay under 200 words. They define language,
 authorized scope, execution, documentation, and communication; this README

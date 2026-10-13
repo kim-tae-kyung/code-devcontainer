@@ -11,11 +11,6 @@ web_search = "live"
 model = "gpt-6.1-sol"
 model_reasoning_effort = "high"
 
-# Long-task tuning, not OpenAI-recommended optimal context sizes.
-# https://learn.chatgpt.com/docs/config-file/config-reference
-model_context_window = 512000
-model_auto_compact_token_limit = 430000
-
 # Planning is high-leverage work; Extra High suits difficult work with
 # multiple steps, sources, or tradeoffs. Max and Ultra are left for /model.
 # https://learn.chatgpt.com/docs/config-file/config-reference
