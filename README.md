@@ -245,7 +245,7 @@ comparison; it does not stage the edit. Untracked files are excluded until
 Git includes them in a diff. Empty-file additions/deletions and permission-only
 changes may be absent from the content comparison, so use `git status` for the
 complete inventory. GNU diff is installed for the built-in directory comparator
-([DiffTool implementation](https://github.com/neovim/neovim/blob/v0.12.5/runtime/pack/dist/opt/nvim.difftool/lua/difftool.lua)).
+([DiffTool implementation](https://github.com/neovim/neovim/blob/v0.12.6/runtime/pack/dist/opt/nvim.difftool/lua/difftool.lua)).
 
 ### Code navigation and completion (LSP)
 
@@ -603,7 +603,7 @@ Herdr also needs to identify the outer terminal before emitting a notification.
 `kubectl exec` does not forward that identity, so the launcher's printed
 connection command passes the local `TERM_PROGRAM` when it is set; pass it
 explicitly when connecting by hand
-([Herdr terminal detection](https://github.com/herdrdev/herdr/blob/v0.9.0/src/terminal_notify.rs)):
+([Herdr terminal detection](https://github.com/herdrdev/herdr/blob/v0.9.5/src/terminal_notify.rs)):
 
 ```bash
 kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
