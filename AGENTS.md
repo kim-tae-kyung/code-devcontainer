@@ -8,7 +8,7 @@ the image carries `operating-principles.md`.
 Work done by the maintainer or an agent in this repository goes directly to
 `main`: commit and push there, no feature branch and no pull request. Pull
 requests are for Renovate, whose automerge waits on the CI build job. That job
-runs only on `pull_request` events, so a direct push to `main` gets the
+runs on `pull_request` and manual dispatch events, so a direct push to `main` gets the
 settings and TOML checks but not the image smoke test; run the smoke test
 locally (`podman build --format docker --platform linux/arm64 .`) when a change
 touches the Dockerfile. Podman's default OCI format ignores the Dockerfile's
@@ -50,11 +50,12 @@ both installed registrations with the build arg after the integration
 installers run, and also exercises Chromium. `headless_shell` on `PATH` points to
 the installed browser so documentation renderers can find it.
 
-Release builds use separate native `ubuntu-latest` and `ubuntu-24.04-arm`
+Release builds use separate native `ubuntu-26.04` and `ubuntu-26.04-arm`
 runners, then combine their digests. Preserve that arrangement and use a native
 architecture for local builds. The Chromium launch smoke test is part of each
-image build; the PR build covers amd64, while arm64 is checked locally for
-hand-made changes and in the release workflow. The release workflow uses
+image build; the PR build covers amd64, while manual CI runs cover both
+architectures. Check arm64 locally for hand-made Dockerfile changes as well.
+The release workflow uses
 `no-cache: true` to refresh unpinned tools
 ([Docker cache invalidation](https://docs.docker.com/build/cache/invalidation/#run-instructions)).
 A push to `main` does not publish an image; publication uses the scheduled or

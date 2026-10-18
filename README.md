@@ -619,7 +619,11 @@ terminal notifications work independently of it.
 
 ### Continuous integration
 
-`ci.yml` runs on every pull request and on pushes to `main`. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, and checks the Playwright pin and flags. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test.
+`ci.yml` runs on every pull request and on pushes to `main`, and supports manual dispatch. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, and checks the Playwright pin and flags. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test. Manual CI runs build both `linux/amd64` and `linux/arm64` on native Ubuntu 26.04 runners without publishing an image:
+
+```bash
+gh workflow run ci.yml
+```
 
 The image build also runs `scripts/check_neovim.py`: real language-server
 connections and navigation/diagnostics for all four languages, plus Git diff
@@ -631,7 +635,7 @@ Renovate runs weekly on Monday and automerges minor, patch, and digest updates. 
 
 ### Via GitHub Actions
 
-Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, refreshing unpinned tools without the build cache and using the base-image digest tracked by Renovate. Each architecture builds on its own native runner — `linux/amd64` on `ubuntu-latest`, `linux/arm64` on `ubuntu-24.04-arm` — and a merge job joins the two digests into the `:latest` manifest, then prunes the GHCR package back to it. Emulating arm64 under QEMU is not an option here; see `AGENTS.md`. To build off-schedule:
+Container images are built and pushed via GitHub Actions every Monday at 06:00 KST, refreshing unpinned tools without the build cache and using the base-image digest tracked by Renovate. Each architecture builds on its own native runner — `linux/amd64` on `ubuntu-26.04`, `linux/arm64` on `ubuntu-26.04-arm` — and a merge job joins the two digests into the `:latest` manifest, then prunes the GHCR package back to it. These explicit [runner labels](https://github.com/actions/runner-images#available-images) use Ubuntu 26.04 on both architectures. Emulating arm64 under QEMU is not an option here; see `AGENTS.md`. To build off-schedule:
 
 1. Go to the **Actions** tab in the repository
 2. Select **Build and Push Container Image** workflow
