@@ -78,10 +78,12 @@ For Codex, enable device-code login for your account or workspace
 ([headless authentication](https://learn.chatgpt.com/docs/auth#login-on-headless-devices)).
 Sign in the GitHub CLI yourself when you need it
 ([`gh auth login`](https://cli.github.com/manual/gh_auth_login)).
-For GitLab, run `glab auth login`, or specify your self-managed instance:
+For GitLab, run `glab auth login` for `gitlab.com`. For a self-managed
+instance, sign in and make it the default host in one command:
 
 ```bash
-glab auth login --hostname gitlab.example.com
+HOST=gitlab.example.com
+glab auth login --hostname ${HOST} && glab config set -g host ${HOST}
 ```
 
 Choose Token and provide a personal access token with `api` and
@@ -89,19 +91,13 @@ Choose Token and provide a personal access token with `api` and
 `glab` stores credentials in its configuration file and prints a warning
 ([GitLab CLI authentication](https://docs.gitlab.com/cli/authentication/)).
 
-Signing in to a self-managed instance does not change the default host,
-which remains `gitlab.com`. Set it globally so commands run outside a
+Signing in does not change the default host, which otherwise remains
+`gitlab.com`. The global `host` setting applies to commands run outside a
 repository with a GitLab remote, such as `glab repo clone group/project` or
-`glab api`, use the same instance. Inside such a repository, `glab` uses the
-remote's host
+`glab api`; inside such a repository, `glab` uses the remote's host
 ([`glab auth login`](https://docs.gitlab.com/cli/auth/login/),
-[`glab config set`](https://docs.gitlab.com/cli/config/set/)):
-
-```bash
-glab config set --global host gitlab.example.com
-glab config get host
-glab auth status
-```
+[`glab config set`](https://docs.gitlab.com/cli/config/set/)). Check the
+result with `glab config get host` and `glab auth status`.
 
 The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
 its API permissions come from your cluster's RBAC, not from the launcher's
