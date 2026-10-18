@@ -89,6 +89,20 @@ Choose Token and provide a personal access token with `api` and
 `glab` stores credentials in its configuration file and prints a warning
 ([GitLab CLI authentication](https://docs.gitlab.com/cli/authentication/)).
 
+Signing in to a self-managed instance does not change the default host,
+which remains `gitlab.com`. Set it globally so commands run outside a
+repository with a GitLab remote, such as `glab repo clone group/project` or
+`glab api`, use the same instance. Inside such a repository, `glab` uses the
+remote's host
+([`glab auth login`](https://docs.gitlab.com/cli/auth/login/),
+[`glab config set`](https://docs.gitlab.com/cli/config/set/)):
+
+```bash
+glab config set --global host gitlab.example.com
+glab config get host
+glab auth status
+```
+
 The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
 its API permissions come from your cluster's RBAC, not from the launcher's
 host credentials ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
