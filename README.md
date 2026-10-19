@@ -625,6 +625,11 @@ terminal notifications work independently of it.
 gh workflow run ci.yml
 ```
 
+Both build workflows pass `GITHUB_TOKEN` through a [build secret](https://docs.docker.com/build/ci/github-actions/secrets/)
+to authenticate the Neovim release API request. This avoids the shared runner
+IP's [unauthenticated API rate limit](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api).
+The token is mounted only for that build step and is not stored in the image.
+
 The image build also runs `scripts/check_neovim.py`: real language-server
 connections and navigation/diagnostics for all four languages, plus Git diff
 fixtures covering staged and unstaged changes, path filtering, file additions

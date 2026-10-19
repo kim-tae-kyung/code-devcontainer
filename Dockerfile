@@ -41,12 +41,19 @@ RUN sudo apt-get update && \
 
 # Install the latest stable Neovim, including its runtime, for the native arch.
 # Release asset digests: https://docs.github.com/en/rest/releases/assets
-RUN case "${TARGETARCH}" in \
+# CI authenticates the API request to avoid the shared runner IP's rate limit.
+# https://docs.docker.com/build/ci/github-actions/secrets/
+RUN --mount=type=secret,id=github_token,uid=1000 \
+  case "${TARGETARCH}" in \
       amd64) NVIM_ARCH=x86_64 ;; \
       arm64) NVIM_ARCH=arm64 ;; \
       *) echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
     esac && \
-  NVIM_RELEASE="$(curl -fsSL https://api.github.com/repos/neovim/neovim/releases/latest)" && \
+  NVIM_API_HEADERS=() && \
+  if [ -f /run/secrets/github_token ]; then \
+    NVIM_API_HEADERS=(-H "Authorization: Bearer $(cat /run/secrets/github_token)"); \
+  fi && \
+  NVIM_RELEASE="$(curl -fsSL "${NVIM_API_HEADERS[@]}" https://api.github.com/repos/neovim/neovim/releases/latest)" && \
   NVIM_ASSET="$(jq -ce --arg name "nvim-linux-${NVIM_ARCH}.tar.gz" \
     '.assets[] | select(.name == $name)' <<< "${NVIM_RELEASE}")" && \
   NVIM_URL="$(jq -er '.browser_download_url' <<< "${NVIM_ASSET}")" && \

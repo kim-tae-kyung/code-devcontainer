@@ -68,6 +68,8 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
+          secrets: |
+            github_token=${{ secrets.GITHUB_TOKEN }}
           labels: ${{ steps.meta.outputs.labels }}
           # Refresh unpinned tools on every release, including scheduled rebuilds.
           # https://docs.docker.com/build/cache/invalidation/#run-instructions
