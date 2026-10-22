@@ -140,6 +140,7 @@ COPY --chown=node:node bash_aliases           ${HOME}/.bash_aliases
 COPY --chown=node:node nvim/                  ${HOME}/.config/nvim/
 COPY --chmod=0755 scripts/git-ndiff           /usr/local/bin/git-ndiff
 COPY --chmod=0755 scripts/pod-init            /usr/local/bin/pod-init
+COPY --chmod=0755 scripts/pod-attach          /usr/local/bin/pod-attach
 
 # Ship agent skills to each CLI's user-level discovery directory.
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
@@ -260,7 +261,7 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
   codex features list | grep -E '^daemon_auto_start +stable +true' >/dev/null && \
   codex remote-control --help >/dev/null && \
-  bash -n /usr/local/bin/pod-init && \
+  bash -n /usr/local/bin/pod-init && bash -n /usr/local/bin/pod-attach && \
   ! codex login status >/dev/null 2>&1 && \
   ! claude auth status >/dev/null 2>&1 && \
   glab --version && glab auth login --help >/dev/null && glab api --help >/dev/null && \
@@ -288,6 +289,10 @@ RUN test "${EDITOR}" = nvim && test "${VISUAL}" = nvim && \
   rustfmt --version && \
   test -f "$(rustc --print sysroot)/lib/rustlib/src/rust/library/std/src/lib.rs" && \
   python3 /tmp/check_neovim.py && rm /tmp/check_neovim.py
+
+# Reconnects must wait for the size kubectl exec applies after starting them.
+COPY --chown=node:node scripts/check_pod_attach.py /tmp/check_pod_attach.py
+RUN python3 /tmp/check_pod_attach.py && rm /tmp/check_pod_attach.py
 
 WORKDIR /workspace
 

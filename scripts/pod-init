@@ -21,5 +21,5 @@ codex remote-control pair
 echo
 echo "Remaining manual step: on the first Codex start, open /hooks and trust Herdr's SessionStart hook."
 if [[ -z "$in_herdr" ]]; then
-    exec herdr
+    exec pod-attach
 fi

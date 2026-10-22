@@ -44,16 +44,21 @@ creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
 kubectl exec -it devcontainer-<timestamp> -- pod-init
 
 # Reconnect to Herdr
-kubectl exec -it devcontainer-<timestamp> -- herdr
+kubectl exec -it devcontainer-<timestamp> -- pod-attach
 
 # Optional plain shell
 kubectl exec -it devcontainer-<timestamp> -- /bin/bash
 ```
 
 Add `-n NAMESPACE` to any of these commands when using a non-default namespace.
-Herdr can run directly under `kubectl exec -it`; an initial Bash session is not
-required. The image exports `SHELL=/bin/bash`, so Herdr starts new interactive
-panes with Bash ([Herdr terminal defaults](https://herdr.dev/docs/configuration/#terminal-defaults)).
+No initial Bash session is needed. kubectl starts the command before the
+container runtime applies the local terminal size, and Herdr exits on a
+zero-sized terminal at startup (`terminal reported a zero-sized grid`), so a
+bare `kubectl exec -it ... -- herdr` can fail
+([herdr#3777](https://github.com/herdrdev/herdr/issues/3777)). `pod-attach`
+waits up to five seconds for the size, then runs `herdr` with its arguments.
+Inside the Pod, run `herdr` directly. The image exports `SHELL=/bin/bash`, so
+Herdr starts new interactive panes with Bash ([Herdr terminal defaults](https://herdr.dev/docs/configuration/#terminal-defaults)).
 
 ### Local container (Docker/Podman)
 
@@ -119,13 +124,19 @@ tmux
 ```
 
 Herdr starts or reattaches to its background session. Press `Ctrl-b q` to
-detach without stopping panes. Repeat `kubectl exec -it POD_NAME -- herdr` to
-reattach, or run `herdr` again from a shell. The background server keeps pane
+detach without stopping panes. Repeat `kubectl exec -it POD_NAME -- pod-attach`
+to reattach, or run `herdr` again from a shell. The background server keeps pane
 processes running while the container stays alive. Stopping or replacing the
 container ends those processes; restoring a saved layout or agent conversation
 requires the corresponding state files to survive
 ([Herdr session state](https://herdr.dev/docs/session-state/)). Use
 `herdr server stop` to terminate the session and its pane processes.
+
+Detach with `Ctrl-b q` rather than closing the terminal. When a connection
+drops instead, the process that `kubectl exec` started can keep running in the
+Pod with its Herdr client still attached. Herdr sizes panes for the most
+recently active client, so a later connection with a different terminal size
+resizes every pane when it attaches and again when it detaches.
 
 The image installs Herdr's official Claude Code and Codex integrations for
 native agent-session restoration. It also installs the latest official `herdr`
@@ -181,7 +192,7 @@ that is already done:
    with remote control enabled.
 4. `codex remote-control pair`, which prints a short-lived code to enter in
    ChatGPT mobile.
-5. `exec herdr`.
+5. `exec pod-attach`, which opens Herdr.
 
 The one manual step left is in the first Codex session: open `/hooks` and
 trust Herdr's `SessionStart` hook (see [Configuration](#configuration)).
@@ -457,6 +468,7 @@ Files baked into the image at build time:
 - `vimrc` → `~/.vimrc`
 - `bash_aliases` → `~/.bash_aliases` (interactive Claude permission bypass)
 - `scripts/pod-init` → `/usr/local/bin/pod-init` (first-connection sign-in and Codex Remote Control)
+- `scripts/pod-attach` → `/usr/local/bin/pod-attach` (opens Herdr once `kubectl exec` has a terminal size)
 - `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
@@ -560,7 +572,7 @@ when connecting to an older cluster.
 
 ### Terminal integration
 
-The primary connection path is `terminal → kubectl exec -it → Herdr → CLI`.
+The primary connection path is `terminal → kubectl exec -it → pod-attach → Herdr → CLI`.
 Herdr's local background server owns its workspaces, tabs, panes, and agent
 terminals. This connection requires no Kubernetes Service or inbound port.
 
@@ -623,7 +635,7 @@ explicitly when connecting by hand
 ([Herdr terminal detection](https://github.com/herdrdev/herdr/blob/v0.9.5/src/terminal_notify.rs)):
 
 ```bash
-kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
+kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty pod-attach
 ```
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.

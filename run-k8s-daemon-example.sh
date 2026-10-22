@@ -52,6 +52,7 @@ fi
 # Herdr identifies the outer terminal from TERM_PROGRAM, which `kubectl exec`
 # does not forward, so pass the launcher's value when it is set.
 # pod-init signs in the agents and starts Codex Remote Control, then opens Herdr.
+# pod-attach waits for kubectl to apply the terminal size, then opens Herdr.
 print_connect() {
     printf '%s' "$1"
     printf ' %q' kubectl exec -it "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- \
@@ -60,4 +61,4 @@ print_connect() {
 }
 echo "Done!"
 print_connect 'First connection:' pod-init
-print_connect 'Reconnect:       ' herdr
+print_connect 'Reconnect:       ' pod-attach

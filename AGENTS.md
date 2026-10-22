@@ -82,6 +82,13 @@ the CLI's own behavior. Do not put a wrapper, alias, or PATH shim in front of
 when a release adds a subcommand. The smoke test asserts the native behavior
 this relies on (`daemon_auto_start`).
 
+Connections reach Herdr through `scripts/pod-attach`, which only waits for the
+terminal size that `kubectl exec` applies after starting the command, then
+runs `herdr "$@"` without parsing arguments. Herdr rejects a zero-sized
+terminal at startup ([herdr#3777](https://github.com/herdrdev/herdr/issues/3777)).
+When a Herdr release tolerates that state, connect with `herdr` directly and
+remove `pod-attach` and its build check.
+
 Herdr installs its session hooks after the baked settings. The smoke test
 checks that its Claude and Codex integrations are current and that Claude's
 `SessionStart` hook exists. The settings contain no custom approval hooks.
