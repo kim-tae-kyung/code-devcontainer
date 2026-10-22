@@ -469,10 +469,12 @@ Herdr's `SessionStart` hook; Codex saves the trust in `~/.codex/config.toml`
 and asks again only if the hook changes
 ([Codex hook trust](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks)).
 
-Herdr has four explicit settings: skip onboarding (`onboarding = false`), show
+Herdr has five explicit settings: skip onboarding (`onboarding = false`), show
 agent labels on pane borders (`ui.show_agent_labels_on_pane_borders = true`),
-use distinct status symbols (`ui.status_indicators = "symbols"`), and send
-notifications through the connected terminal (`ui.toast.delivery = "terminal"`).
+use distinct status symbols (`ui.status_indicators = "symbols"`), send
+notifications through the connected terminal (`ui.toast.delivery = "terminal"`),
+and keep up to 50 MB of scrollback per pane
+(`advanced.scrollback_limit_bytes = 50000000`; see [Terminal integration](#terminal-integration)).
 Keys, theme, and other settings use upstream defaults. Herdr's shell setting
 also remains at its upstream default, which reads the image's `SHELL=/bin/bash`
 environment variable ([Herdr configuration](https://herdr.dev/docs/configuration/)).
@@ -570,6 +572,21 @@ Main-screen output enters Herdr's per-pane host scrollback, where
 alternate-screen transcript is readable only through a mouse-scroll harvest
 while the agent is idle
 ([Herdr agent automation](https://herdr.dev/docs/agent-automation/)).
+
+Two limits decide how much of a transcript stays scrollable. Codex clears and
+rebuilds its scrollback from its own transcript whenever the pane is resized,
+for example when a client with a different terminal size reattaches, and
+replays it the same way on resume. By default it keeps only the newest rendered
+rows, 1,000 for terminals it cannot identify, Herdr included; older rows leave
+the scrollback behind a notice pointing to the `Ctrl+T` transcript view.
+`[tui] terminal_resize_reflow_max_rows = 0` keeps every row
+([config schema](https://github.com/openai/codex/blob/main/codex-rs/core/config.schema.json),
+[per-terminal defaults](https://github.com/openai/codex/blob/main/codex-rs/tui/src/resize_reflow_cap.rs)).
+Herdr then caps each pane's scrollback in bytes rather than rows, so a wide pane
+keeps fewer rows than a narrow one. The image raises the 10 MB default to 50 MB
+([Herdr config reference](https://herdr.dev/docs/config-reference/)). That
+budget also bounds the transcript `claude --resume` prints when Herdr restores
+a Claude Code pane after a server restart.
 
 Herdr owns backgrounding, so Claude Code's own session-handoff paths are
 disabled. The build writes `leftArrowOpensAgents: false` to `~/.claude.json`,

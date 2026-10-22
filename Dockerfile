@@ -251,7 +251,7 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   codex features list | grep -E '^image_generation +stable +true' >/dev/null && \
   jq -e '.permissions.defaultMode == "bypassPermissions"' ${HOME}/.claude/settings.json >/dev/null && \
   claude --version && codex --version && codex --strict-config app-server </dev/null >/dev/null && \
-  herdr --version && herdr --help >/dev/null && \
+  herdr --version && herdr --help >/dev/null && herdr config check && \
   herdr integration status | grep '^claude: current ' >/dev/null && \
   herdr integration status | grep '^codex: current ' >/dev/null && \
   jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \

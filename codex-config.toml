@@ -37,13 +37,20 @@ enabled = false
 # Inside a Herdr pane (TERM_PROGRAM=herdr) only BEL reaches the outer terminal;
 # Herdr's own toast carries the desktop notification. Main-screen output stays
 # in Herdr's host scrollback for `herdr agent read` and handoff.
+# Codex clears and rebuilds that scrollback whenever the pane is resized, as
+# when a different-sized client reattaches, and replays it on resume. For
+# terminals it cannot identify, Herdr included, it keeps only the newest 1,000
+# rendered rows; 0 keeps them all and leaves retention to Herdr's limit.
 # https://learn.chatgpt.com/docs/config-file/config-reference
 # https://herdr.dev/docs/agent-automation/
+# https://github.com/openai/codex/blob/main/codex-rs/core/config.schema.json
+# https://github.com/openai/codex/blob/main/codex-rs/tui/src/resize_reflow_cap.rs
 [tui]
 notifications = true
 notification_method = "bel"
 notification_condition = "always"
 alternate_screen = "never"
+terminal_resize_reflow_max_rows = 0
 
 # Playwright is pinned to the version the image built Chromium for; keep it
 # equal to PLAYWRIGHT_MCP_VERSION in the Dockerfile.
