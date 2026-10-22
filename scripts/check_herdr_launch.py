@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Check that pod-attach holds Herdr until kubectl applies the terminal size."""
+"""Check that `herdr` holds the binary until kubectl applies the terminal size."""
 
 import fcntl
 import os
 import pty
 import select
+import shutil
 import struct
 import subprocess
 import termios
@@ -35,7 +36,7 @@ def check_waits_for_size():
     master, slave = pty.openpty()
     set_size(master, 0, 0)
     proc = subprocess.Popen(
-        ["pod-attach", "--version"], stdin=slave, stdout=slave, stderr=slave
+        ["herdr", "--version"], stdin=slave, stdout=slave, stderr=slave
     )
     os.close(slave)
     early = read_until_exit(master, proc, 0.5)
@@ -50,7 +51,7 @@ def check_waits_for_size():
 def check_skips_without_terminal():
     start = time.monotonic()
     result = subprocess.run(
-        ["pod-attach", "--version"],
+        ["herdr", "--version"],
         stdin=subprocess.DEVNULL,
         capture_output=True,
         check=True,
@@ -60,9 +61,10 @@ def check_skips_without_terminal():
 
 
 def main():
+    assert shutil.which("herdr") == "/usr/local/bin/herdr", shutil.which("herdr")
     check_waits_for_size()
     check_skips_without_terminal()
-    print("pod-attach waits for a terminal size and execs Herdr")
+    print("herdr waits for a terminal size before starting")
 
 
 if __name__ == "__main__":

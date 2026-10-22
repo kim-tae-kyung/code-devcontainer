@@ -139,8 +139,7 @@ COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 COPY --chown=node:node bash_aliases           ${HOME}/.bash_aliases
 COPY --chown=node:node nvim/                  ${HOME}/.config/nvim/
 COPY --chmod=0755 scripts/git-ndiff           /usr/local/bin/git-ndiff
-COPY --chmod=0755 scripts/pod-init            /usr/local/bin/pod-init
-COPY --chmod=0755 scripts/pod-attach          /usr/local/bin/pod-attach
+COPY --chmod=0755 scripts/herdr               /usr/local/bin/herdr
 
 # Ship agent skills to each CLI's user-level discovery directory.
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
@@ -202,8 +201,11 @@ RUN jq '. + {leftArrowOpensAgents: false}' ${HOME}/.claude.json > /tmp/claude.js
   mv /tmp/claude.json ${HOME}/.claude.json
 
 # Install the latest stable Herdr release. Its installer selects the native
-# Linux asset and verifies the release-published SHA-256 checksum.
-RUN curl -fsSL https://herdr.dev/install.sh | sh
+# Linux asset and verifies the release-published SHA-256 checksum. The binary
+# goes to /opt/herdr; /usr/local/bin/herdr waits for a terminal size, then runs it.
+RUN sudo install -d -o node -g node /opt/herdr && \
+  curl -fsSL https://herdr.dev/install.sh | HERDR_INSTALL_DIR=/opt/herdr sh && \
+  test ! -e ${HOME}/.local/bin/herdr
 
 # Install Herdr's native session integrations after both agent configs have
 # reached their final build-time state.
@@ -259,9 +261,8 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   jq -e '.env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF == "1"' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.leftArrowOpensAgents == false' ${HOME}/.claude.json >/dev/null && \
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
-  codex features list | grep -E '^daemon_auto_start +stable +true' >/dev/null && \
-  codex remote-control --help >/dev/null && \
-  bash -n /usr/local/bin/pod-init && bash -n /usr/local/bin/pod-attach && \
+  test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --no-daemon'" && \
+  bash -n /usr/local/bin/herdr && \
   ! codex login status >/dev/null 2>&1 && \
   ! claude auth status >/dev/null 2>&1 && \
   glab --version && glab auth login --help >/dev/null && glab api --help >/dev/null && \
@@ -290,9 +291,9 @@ RUN test "${EDITOR}" = nvim && test "${VISUAL}" = nvim && \
   test -f "$(rustc --print sysroot)/lib/rustlib/src/rust/library/std/src/lib.rs" && \
   python3 /tmp/check_neovim.py && rm /tmp/check_neovim.py
 
-# Reconnects must wait for the size kubectl exec applies after starting them.
-COPY --chown=node:node scripts/check_pod_attach.py /tmp/check_pod_attach.py
-RUN python3 /tmp/check_pod_attach.py && rm /tmp/check_pod_attach.py
+# `kubectl exec -- herdr` must wait for the size kubectl applies after starting it.
+COPY --chown=node:node scripts/check_herdr_launch.py /tmp/check_herdr_launch.py
+RUN python3 /tmp/check_herdr_launch.py && rm /tmp/check_herdr_launch.py
 
 WORKDIR /workspace
 

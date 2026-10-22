@@ -38,13 +38,9 @@ creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
 # (optional: POD_NAME, NAMESPACE, NODE_NAME, SERVICE_ACCOUNT)
 ./run-k8s-daemon-example.sh
 
-# First connection: sign in, start Codex Remote Control, then open Herdr
-# (the launcher prints these lines, adding `env TERM_PROGRAM=...` when the
-# launcher's shell has it set)
-kubectl exec -it devcontainer-<timestamp> -- pod-init
-
-# Reconnect to Herdr
-kubectl exec -it devcontainer-<timestamp> -- pod-attach
+# Connect to Herdr (the launcher prints this line, adding
+# `env TERM_PROGRAM=...` when the launcher's shell has it set)
+kubectl exec -it devcontainer-<timestamp> -- herdr
 
 # Optional plain shell
 kubectl exec -it devcontainer-<timestamp> -- /bin/bash
@@ -53,12 +49,12 @@ kubectl exec -it devcontainer-<timestamp> -- /bin/bash
 Add `-n NAMESPACE` to any of these commands when using a non-default namespace.
 No initial Bash session is needed. kubectl starts the command before the
 container runtime applies the local terminal size, and Herdr exits on a
-zero-sized terminal at startup (`terminal reported a zero-sized grid`), so a
-bare `kubectl exec -it ... -- herdr` can fail
-([herdr#3777](https://github.com/herdrdev/herdr/issues/3777)). `pod-attach`
-waits up to five seconds for the size, then runs `herdr` with its arguments.
-Inside the Pod, run `herdr` directly. The image exports `SHELL=/bin/bash`, so
-Herdr starts new interactive panes with Bash ([Herdr terminal defaults](https://herdr.dev/docs/configuration/#terminal-defaults)).
+zero-sized terminal at startup (`terminal reported a zero-sized grid`;
+[herdr#3777](https://github.com/herdrdev/herdr/issues/3777)). The image's
+`herdr` command, `/usr/local/bin/herdr`, therefore waits up to five seconds for
+a size and then runs the installed binary, `/opt/herdr/herdr`, with the same
+arguments. The image exports `SHELL=/bin/bash`, so Herdr starts new interactive
+panes with Bash ([Herdr terminal defaults](https://herdr.dev/docs/configuration/#terminal-defaults)).
 
 ### Local container (Docker/Podman)
 
@@ -76,7 +72,7 @@ and regular files use mode `600`. It also copies `${HOME}/.gitconfig` to
 is skipped independently. If copying or permission setup fails, the launcher
 exits with an error before printing the connection command.
 
-`pod-init` signs in Claude Code and Codex (see [First connection](#first-connection-pod-init)).
+Sign in Claude Code and Codex from a Herdr pane (see [First connection](#first-connection)).
 For Claude Code, open the printed URL locally and paste the login code
 ([container login flow](https://code.claude.com/docs/en/troubleshoot-install#oauth-login-fails-in-wsl2-ssh-or-containers)).
 For Codex, enable device-code login for your account or workspace
@@ -124,8 +120,8 @@ tmux
 ```
 
 Herdr starts or reattaches to its background session. Press `Ctrl-b q` to
-detach without stopping panes. Repeat `kubectl exec -it POD_NAME -- pod-attach`
-to reattach, or run `herdr` again from a shell. The background server keeps pane
+detach without stopping panes. Repeat `kubectl exec -it POD_NAME -- herdr` to
+reattach, or run `herdr` again from a shell. The background server keeps pane
 processes running while the container stays alive. Stopping or replacing the
 container ends those processes; restoring a saved layout or agent conversation
 requires the corresponding state files to survive
@@ -180,39 +176,17 @@ install an automatic updater. The user-level locations make the skill
 available across projects in [Claude Code](https://code.claude.com/docs/en/skills#choose-where-skills-load)
 and [Codex](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
 
-### First connection (pod-init)
+### First connection
 
-Connect to a new Pod with `pod-init` once. It runs from the `kubectl exec`
-shell, outside Herdr, and does the following in order. It skips each sign-in
-that is already done:
+In a new Pod, sign in both agents from a Herdr pane:
 
-1. `claude auth login`, unless `claude auth status` reports a login.
-2. `codex login --device-auth`, unless `codex login status` reports a login.
-3. `codex remote-control start`, which starts Codex's shared app-server daemon
-   with remote control enabled.
-4. `codex remote-control pair`, which prints a short-lived code to enter in
-   ChatGPT mobile.
-5. `exec pod-attach`, which opens Herdr.
+```bash
+claude auth login
+codex login --device-auth
+```
 
-The one manual step left is in the first Codex session: open `/hooks` and
-trust Herdr's `SessionStart` hook (see [Configuration](#configuration)).
-
-Interactive `codex` attaches to the shared daemon by default
-(`daemon_auto_start`; `--no-daemon` opts out), so `codex`, `codex resume`,
-and Herdr's restore commands need no wrapper or extra flags. The daemon keeps
-`remoteControlEnabled` in `~/.codex/app-server-daemon/settings.json`. When a
-later `codex` restarts the daemon, it comes back with remote control on. The
-smoke test fails the build if Codex stops shipping `daemon_auto_start` as a
-stable default ([CLI reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli),
-[Remote availability](https://learn.chatgpt.com/docs/remote)).
-
-The daemon inherits the environment of whatever starts it. Herdr's Codex hook
-reads `HERDR_ENV`, `HERDR_SOCKET_PATH`, and `HERDR_PANE_ID` from that
-environment, so a daemon started inside a pane would attach every later
-session to that pane ([Herdr hook](https://github.com/herdrdev/herdr/blob/master/src/integration/assets/codex/herdr-agent-state.sh)).
-`pod-init` clears every `HERDR_*` variable before it starts the daemon. If the
-daemon ever restarts from inside a pane, run `codex remote-control stop`, then
-`pod-init` again from a plain `kubectl exec -- bash` shell.
+Then open `/hooks` in the first Codex session and trust Herdr's `SessionStart`
+hook (see [Configuration](#configuration)).
 
 ### Editing and Git diff (Neovim)
 
@@ -446,8 +420,9 @@ is not an assumption or a control provided by this repository.
   `claude --dangerously-skip-permissions`, the documented equivalent of the
   baked `bypassPermissions` mode, and applies only to interactive Bash
   ([Claude flag equivalence](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
-  Codex needs no flag: `approval_policy` and `sandbox_mode` in its config
-  already match `--yolo` ([Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference)).
+  Codex needs no permission flag: `approval_policy` and `sandbox_mode` in its
+  config already match `--yolo` ([Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference)).
+  Its alias adds only `--no-daemon` (see [Terminal integration](#terminal-integration)).
 
 The CLIs run as `node`. Kubernetes API authority depends on the Pod's selected
 ServiceAccount and cluster RBAC. The launcher retains token-mount defaults and
@@ -466,9 +441,8 @@ Files baked into the image at build time:
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`
 - `vimrc` → `~/.vimrc`
-- `bash_aliases` → `~/.bash_aliases` (interactive Claude permission bypass)
-- `scripts/pod-init` → `/usr/local/bin/pod-init` (first-connection sign-in and Codex Remote Control)
-- `scripts/pod-attach` → `/usr/local/bin/pod-attach` (opens Herdr once `kubectl exec` has a terminal size)
+- `bash_aliases` → `~/.bash_aliases` (interactive Claude permission bypass and in-process Codex)
+- `scripts/herdr` → `/usr/local/bin/herdr` (waits for a terminal size, then runs `/opt/herdr/herdr`)
 - `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
 - `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
 - `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
@@ -572,7 +546,7 @@ when connecting to an older cluster.
 
 ### Terminal integration
 
-The primary connection path is `terminal → kubectl exec -it → pod-attach → Herdr → CLI`.
+The primary connection path is `terminal → kubectl exec -it → Herdr → CLI`.
 Herdr's local background server owns its workspaces, tabs, panes, and agent
 terminals. This connection requires no Kubernetes Service or inbound port.
 
@@ -599,6 +573,19 @@ keeps fewer rows than a narrow one. The image raises the 10 MB default to 50 MB
 ([Herdr config reference](https://herdr.dev/docs/config-reference/)). That
 budget also bounds the transcript `claude --resume` prints when Herdr restores
 a Claude Code pane after a server restart.
+
+Herdr resumes agent panes after a server restart from the session each
+agent's `SessionStart` hook reports. Its Codex hook finds the pane through
+`HERDR_PANE_ID` in the environment of the process that runs the hook
+([Herdr hook](https://github.com/herdrdev/herdr/blob/master/src/integration/assets/codex/herdr-agent-state.sh)).
+Codex's shared app-server daemon runs hooks in its own environment, so with it
+Herdr records no Codex session and restores Codex panes as plain shells
+([herdr#4649](https://github.com/herdrdev/herdr/issues/4649)). `bash_aliases`
+therefore defines `codex` as `codex --no-daemon`, which keeps the app server in
+the pane's own process
+([CLI reference](https://learn.chatgpt.com/docs/developer-commands?surface=cli)).
+Herdr's restore runs `codex resume <id>` in the pane's Bash shell, where the
+alias applies. Codex Remote Control needs the shared daemon and is not set up.
 
 Herdr owns backgrounding, so Claude Code's own session-handoff paths are
 disabled. The build writes `leftArrowOpensAgents: false` to `~/.claude.json`,
@@ -635,15 +622,10 @@ explicitly when connecting by hand
 ([Herdr terminal detection](https://github.com/herdrdev/herdr/blob/v0.9.5/src/terminal_notify.rs)):
 
 ```bash
-kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty pod-attach
+kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
 ```
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
-
-Codex Remote Control runs on the shared app-server daemon that `pod-init`
-starts. Like Claude's, it connects outbound and needs no inbound Service. Herdr
-terminal notifications work independently of it.
-
 ## Build & Push
 
 ### Continuous integration

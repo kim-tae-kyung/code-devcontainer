@@ -1,0 +1,13 @@
+#!/bin/bash
+# kubectl exec starts its command before the container runtime applies the
+# client's terminal size, and Herdr exits on a zero-sized terminal at startup
+# (https://github.com/herdrdev/herdr/issues/3777). Wait for the size, then run
+# the installed binary with the original arguments.
+set -euo pipefail
+
+for _ in {1..250}; do
+    read -r rows cols < <(stty size 2>/dev/null) || break
+    (( rows > 0 && cols > 0 )) && break
+    sleep 0.02
+done
+exec /opt/herdr/herdr "$@"

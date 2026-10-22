@@ -72,22 +72,25 @@ access. Codex uses `approval_policy = "never"` and
 The image runs the CLIs as `node`. Keep authorization and review-only behavior
 in the shared operating principles; CLI permission bypass does not enlarge the
 user's requested task scope. `bash_aliases` adds the Claude bypass flag. Codex
-needs no flag because its config already grants full access.
+needs no permission flag because its config already grants full access.
 
-Interactive Codex attaches to its shared app-server daemon by default.
-`scripts/pod-init` starts that daemon with remote control enabled, from an
-environment cleared of `HERDR_*`, so the daemon carries no pane identity. Use
-the CLI's own behavior. Do not put a wrapper, alias, or PATH shim in front of
-`codex` or `claude`: a wrapper has to parse the CLI's arguments and breaks
-when a release adds a subcommand. The smoke test asserts the native behavior
-this relies on (`daemon_auto_start`).
+`bash_aliases` runs interactive Codex with `--no-daemon`. Codex's shared
+app-server daemon runs hooks without the pane's `HERDR_*` identity, so Herdr
+cannot record or resume Codex sessions through it
+([herdr#4649](https://github.com/herdrdev/herdr/issues/4649)). Codex Remote
+Control depends on that daemon and is intentionally not set up. Drop the flag
+when a Herdr or Codex release keeps the pane identity with the daemon. Use the
+CLI's own behavior otherwise: an alias may only prepend a flag, and no wrapper
+or PATH shim in front of `codex` or `claude` may parse arguments, because it
+breaks when a release adds a subcommand.
 
-Connections reach Herdr through `scripts/pod-attach`, which only waits for the
-terminal size that `kubectl exec` applies after starting the command, then
-runs `herdr "$@"` without parsing arguments. Herdr rejects a zero-sized
-terminal at startup ([herdr#3777](https://github.com/herdrdev/herdr/issues/3777)).
-When a Herdr release tolerates that state, connect with `herdr` directly and
-remove `pod-attach` and its build check.
+The image installs the Herdr binary in `/opt/herdr`. `scripts/herdr`, installed
+as `/usr/local/bin/herdr`, waits for the terminal size that `kubectl exec`
+applies after starting the command, then runs the binary with `"$@"` without
+parsing arguments. Herdr rejects a zero-sized terminal at startup
+([herdr#3777](https://github.com/herdrdev/herdr/issues/3777)). When a Herdr
+release tolerates that state, install it on `PATH` again and remove the script
+and its build check.
 
 Herdr installs its session hooks after the baked settings. The smoke test
 checks that its Claude and Codex integrations are current and that Claude's
