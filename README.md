@@ -29,8 +29,9 @@ existing Pods or older CLI releases.
 
 Run the launcher on the Kubernetes control-plane host with `kubectl` and `jq`
 available, then connect to the long-lived Pod with `kubectl exec`. The launcher
-creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh` and
-`${HOME}/.gitconfig` when present, and prints the connection commands
+creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh`,
+`${HOME}/.gitconfig`, and GitHub CLI `hosts.yml` when present, and prints the
+connection commands
 ([kubectl exec](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/)):
 
 ```bash
@@ -68,17 +69,32 @@ The launcher copies the contents of `${HOME}/.ssh` into `/home/node/.ssh` in the
 new Pod when the source directory exists. Copied directories use mode `700`
 and regular files use mode `600`. It also copies `${HOME}/.gitconfig` to
 `/home/node/.gitconfig` with mode `600`, preserving the launcher's global
-[Git configuration](https://git-scm.com/docs/git-config). Each missing source
-is skipped independently. If copying or permission setup fails, the launcher
-exits with an error before printing the connection command.
+[Git configuration](https://git-scm.com/docs/git-config). It copies the GitHub
+CLI's `hosts.yml` from the launcher's configuration directory, which is
+`GH_CONFIG_DIR`, else `$XDG_CONFIG_HOME/gh`, else `~/.config/gh`
+([gh environment](https://cli.github.com/manual/gh_help_environment)), to
+`/home/node/.config/gh/hosts.yml`, creating the directory with mode `700` and
+the file with mode `600`. Each missing source is skipped independently. If
+copying or permission setup fails, the launcher exits with an error before
+printing the connection command.
 
 Sign in Claude Code and Codex from a Herdr pane (see [First connection](#first-connection)).
 For Claude Code, open the printed URL locally and paste the login code
 ([container login flow](https://code.claude.com/docs/en/troubleshoot-install#oauth-login-fails-in-wsl2-ssh-or-containers)).
 For Codex, enable device-code login for your account or workspace
 ([headless authentication](https://learn.chatgpt.com/docs/auth#login-on-headless-devices)).
-Sign in the GitHub CLI yourself when you need it
-([`gh auth login`](https://cli.github.com/manual/gh_auth_login)).
+The GitHub CLI in the Pod reuses the launcher's token from the copied
+`hosts.yml`; check it with `gh auth status` instead of signing in again. Each
+`gh auth login` issues a new OAuth token, and GitHub keeps at most ten per user,
+application, and scope, revoking an existing one when another is created
+([token limit](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#creating-multiple-tokens-for-oauth-apps)).
+A fresh sign-in in every disposable Pod can therefore revoke the launcher
+host's token. The file carries the token only when the launcher's `gh` stores
+it in plain text: `gh` uses the system credential store when one is available
+and otherwise falls back to a plain-text file
+([`gh auth login`](https://cli.github.com/manual/gh_auth_login)). When the
+launcher has no `hosts.yml` or keeps its token in a credential store, run
+`gh auth login` in the Pod.
 For GitLab, run `glab auth login` for `gitlab.com`. For a self-managed
 instance, sign in and make it the default host in one command:
 

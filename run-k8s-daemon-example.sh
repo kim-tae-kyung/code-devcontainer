@@ -49,6 +49,14 @@ if [ -f "${HOME}/.gitconfig" ]; then
     kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- chmod 600 /home/node/.gitconfig
 fi
 
+gh_hosts="${GH_CONFIG_DIR:-${XDG_CONFIG_HOME:-${HOME}/.config}/gh}/hosts.yml"
+if [ -f "$gh_hosts" ]; then
+    echo "Copying GitHub CLI authentication..."
+    # Reuse the host's token; signing in inside the Pod would issue a new one.
+    kubectl exec -i "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
+        'umask 077; mkdir -p /home/node/.config/gh && cat > /home/node/.config/gh/hosts.yml' < "$gh_hosts"
+fi
+
 # Herdr identifies the outer terminal from TERM_PROGRAM, which `kubectl exec`
 # does not forward, so pass the launcher's value when it is set.
 echo "Done!"
