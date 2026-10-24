@@ -30,8 +30,8 @@ existing Pods or older CLI releases.
 Run the launcher on the Kubernetes control-plane host with `kubectl` and `jq`
 available, then connect to the long-lived Pod with `kubectl exec`. The launcher
 creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh`,
-`${HOME}/.gitconfig`, and GitHub CLI `hosts.yml` when present, and prints the
-connection commands
+`${HOME}/.gitconfig`, GitHub CLI `hosts.yml`, and GitLab CLI `config.yml` when
+present, and prints the connection commands
 ([kubectl exec](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/)):
 
 ```bash
@@ -74,7 +74,11 @@ CLI's `hosts.yml` from the launcher's configuration directory, which is
 `GH_CONFIG_DIR`, else `$XDG_CONFIG_HOME/gh`, else `~/.config/gh`
 ([gh environment](https://cli.github.com/manual/gh_help_environment)), to
 `/home/node/.config/gh/hosts.yml`, creating the directory with mode `700` and
-the file with mode `600`. Each missing source is skipped independently. If
+the file with mode `600`. It copies the GitLab CLI's `config.yml` from
+`GLAB_CONFIG_DIR`, else `~/.config/glab-cli`, the Linux default
+([glab configuration files](https://docs.gitlab.com/cli/configuration/#configuration-file-locations)),
+to `/home/node/.config/glab-cli/config.yml` with mode `600`, replacing the
+image's default file. Each missing source is skipped independently. If
 copying or permission setup fails, the launcher exits with an error before
 printing the connection command.
 
@@ -95,8 +99,16 @@ and otherwise falls back to a plain-text file
 ([`gh auth login`](https://cli.github.com/manual/gh_auth_login)). When the
 launcher has no `hosts.yml` or keeps its token in a credential store, run
 `gh auth login` in the Pod.
-For GitLab, run `glab auth login` for `gitlab.com`. For a self-managed
-instance, sign in and make it the default host in one command:
+
+The GitLab CLI in the Pod uses the copied `config.yml`, which carries the
+launcher's hosts, tokens, and default `host` setting; check it with
+`glab auth status`. Like `hosts.yml`, the file carries a token only when the
+launcher's `glab` stores it in plain text: `glab` uses the operating-system
+keyring by default and writes the token to its configuration file, with a
+warning, when no keyring is available
+([GitLab CLI authentication](https://docs.gitlab.com/cli/authentication/)).
+Without a copied token, run `glab auth login` for `gitlab.com`. For a
+self-managed instance, sign in and make it the default host in one command:
 
 ```bash
 HOST=gitlab.example.com
@@ -104,9 +116,8 @@ glab auth login --hostname ${HOST} && glab config set -g host ${HOST}
 ```
 
 Choose Token and provide a personal access token with `api` and
-`write_repository` scopes. When the container has no operating-system keyring,
-`glab` stores credentials in its configuration file and prints a warning
-([GitLab CLI authentication](https://docs.gitlab.com/cli/authentication/)).
+`write_repository` scopes. Signing in the same way on the launcher host lets
+later Pods receive the token through the copied file.
 
 Signing in does not change the default host, which otherwise remains
 `gitlab.com`. The global `host` setting applies to commands run outside a

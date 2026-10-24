@@ -57,6 +57,13 @@ if [ -f "$gh_hosts" ]; then
         'umask 077; mkdir -p /home/node/.config/gh && cat > /home/node/.config/gh/hosts.yml' < "$gh_hosts"
 fi
 
+glab_config="${GLAB_CONFIG_DIR:-${HOME}/.config/glab-cli}/config.yml"
+if [ -f "$glab_config" ]; then
+    echo "Copying GitLab CLI configuration..."
+    kubectl exec -i "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
+        'umask 077; mkdir -p /home/node/.config/glab-cli && cat > /home/node/.config/glab-cli/config.yml' < "$glab_config"
+fi
+
 # Herdr identifies the outer terminal from TERM_PROGRAM, which `kubectl exec`
 # does not forward, so pass the launcher's value when it is set.
 echo "Done!"
