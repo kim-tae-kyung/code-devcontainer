@@ -457,7 +457,10 @@ does not create roles or bindings
 ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/)).
 Shared instructions define task scope, preserve review-only behavior, and
 require clarification for unapproved destructive actions. They do not create
-an operating-system or cluster security boundary.
+an operating-system or cluster security boundary. Claude Code's plan mode is
+also instruction-only here: in interactive sessions with bypass permissions
+available, Claude Code does not enforce plan mode's edit and command blocks
+([plan mode with bypass permissions](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 
 ## Configuration
 
@@ -555,8 +558,11 @@ Pod can miss `AGENTS.md`
 [Codex AGENTS.md discovery](https://learn.chatgpt.com/docs/agent-configuration/agents-md)).
 
 Review-only requests produce findings without edits. Durable documentation
-uses official sources and describes current behavior. Replies use concise,
-plain language, with lists or tables when helpful.
+uses official sources and describes current behavior. Code, comments, commit
+messages, and documentation default to English. Replies and plans follow the
+request's main language: a plan is saved as a file, but it is written for the
+user's approval rather than for the repository. Replies use concise, plain
+language.
 
 Codex memory generation and injection are disabled, and `history.persistence`
 is `none`; this setting controls `history.jsonl`, not all session storage

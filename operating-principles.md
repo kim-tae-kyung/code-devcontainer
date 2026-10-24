@@ -2,7 +2,7 @@
 
 ## Language
 
-Write artifacts in English. Reply in Korean to primarily Korean requests; otherwise English.
+Write code, comments, commits, and docs in English unless told otherwise. Write replies and plans in the request's main language.
 
 ## Execution
 
@@ -20,4 +20,4 @@ For durable documentation, cite official sources for external claims, describe c
 
 ## Communication
 
-Use plain, concise language without hype. Use lists or tables when helpful. Give brief progress updates; finish with results, validation, and blockers in a self-contained reply.
+Use plain, concise language without hype. Give brief progress updates; finish with results, validation, and blockers in a self-contained reply.
