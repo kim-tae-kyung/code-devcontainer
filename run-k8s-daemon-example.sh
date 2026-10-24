@@ -55,6 +55,10 @@ if [ -f "$gh_hosts" ]; then
     # Reuse the host's token; signing in inside the Pod would issue a new one.
     kubectl exec -i "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
         'umask 077; mkdir -p /home/node/.config/gh && cat > /home/node/.config/gh/hosts.yml' < "$gh_hosts"
+    # Git keeps the copied .gitconfig's helpers until gh takes over its hosts.
+    kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
+        'if gh auth token >/dev/null 2>&1; then gh auth setup-git;
+        else echo "gh has no token: run gh auth login, then gh auth setup-git"; fi'
 fi
 
 glab_config="${GLAB_CONFIG_DIR:-${HOME}/.config/glab-cli}/config.yml"
@@ -62,6 +66,13 @@ if [ -f "$glab_config" ]; then
     echo "Copying GitLab CLI configuration..."
     kubectl exec -i "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
         'umask 077; mkdir -p /home/node/.config/glab-cli && cat > /home/node/.config/glab-cli/config.yml' < "$glab_config"
+    # glab has no setup-git; write the same entries gh writes, for the default host.
+    kubectl exec "$POD_NAME" ${namespace_flag:+"$namespace_flag"} -- sh -c \
+        'host=$(glab config get host) && key="credential.https://$host.helper" &&
+        if glab auth status --hostname "$host" >/dev/null 2>&1; then
+            git config --global --replace-all "$key" "" &&
+            git config --global --add "$key" "!$(command -v glab) auth git-credential"
+        else echo "glab has no token for $host: run glab auth login --hostname $host"; fi'
 fi
 
 # Herdr identifies the outer terminal from TERM_PROGRAM, which `kubectl exec`

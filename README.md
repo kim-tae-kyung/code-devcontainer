@@ -31,7 +31,7 @@ Run the launcher on the Kubernetes control-plane host with `kubectl` and `jq`
 available, then connect to the long-lived Pod with `kubectl exec`. The launcher
 creates the Pod, waits for readiness, copies the launcher's `${HOME}/.ssh`,
 `${HOME}/.gitconfig`, GitHub CLI `hosts.yml`, and GitLab CLI `config.yml` when
-present, and prints the connection commands
+present, points Git at those CLI tokens, and prints the connection commands
 ([kubectl exec](https://kubernetes.io/docs/reference/kubectl/generated/kubectl_exec/)):
 
 ```bash
@@ -126,6 +126,17 @@ repository with a GitLab remote, such as `glab repo clone group/project` or
 ([`glab auth login`](https://docs.gitlab.com/cli/auth/login/),
 [`glab config set`](https://docs.gitlab.com/cli/config/set/)). Check the
 result with `glab config get host` and `glab auth status`.
+
+Git uses the same tokens. After copying `hosts.yml`, the launcher runs
+[`gh auth setup-git`](https://cli.github.com/manual/gh_auth_setup-git) in the
+Pod. After copying `config.yml`, it writes the same two entries for glab's
+default `host`: an empty `credential.https://<host>.helper`, which drops the
+helpers the copied `.gitconfig` sets for that host, followed by
+`glab auth git-credential`
+([credential helpers](https://git-scm.com/docs/gitcredentials)). HTTPS clone
+and push then run without a prompt; pushing to GitLab needs the token's
+`write_repository` scope. When a CLI has no token, the launcher prints how to
+sign in and leaves that host's copied helpers in place.
 
 The Pod's `SERVICE_ACCOUNT` selects an existing Kubernetes ServiceAccount;
 its API permissions come from your cluster's RBAC, not from the launcher's
