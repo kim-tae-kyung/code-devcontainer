@@ -30,7 +30,9 @@ kubectl run "$POD_NAME" \
     --overrides="$OVERRIDES"
 
 echo "Waiting for pod to be ready..."
-kubectl wait --for=condition=Ready "pod/$POD_NAME" ${namespace_flag:+"$namespace_flag"} --timeout=600s
+# A node's first pull of the image can exceed ten minutes; a timeout here
+# exits before any configuration is copied.
+kubectl wait --for=condition=Ready "pod/$POD_NAME" ${namespace_flag:+"$namespace_flag"} --timeout=30m
 
 if [ -d "${HOME}/.ssh" ]; then
     echo "Copying SSH configuration and keys..."
