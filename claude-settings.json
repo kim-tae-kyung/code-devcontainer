@@ -9,7 +9,8 @@
   "env": {
     "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
     "DISABLE_ERROR_REPORTING": "1",
-    "CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF": "1"
+    "CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF": "1",
+    "BASH_MAX_TIMEOUT_MS": "7200000"
   },
   "extraKnownMarketplaces": {
     "claude-plugins-official": {

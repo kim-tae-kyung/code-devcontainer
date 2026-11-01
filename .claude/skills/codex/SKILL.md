@@ -25,8 +25,8 @@ Codex prints its final message to stdout and progress to stderr
 Standing rules for every call, using the
 [Codex CLI options](https://learn.chatgpt.com/docs/cli/reference):
 
-- Pass `timeout: 600000` to the Bash tool. Reviews and multi-step tasks run
-  for minutes.
+- Choose foreground or background and the Bash tool `timeout` by workload,
+  as described in [Run and wait](#run-and-wait).
 - Quote prompts and paths as shell arguments. Use a single-quoted prompt when
   possible; for literal apostrophes or long prompts, use a uniquely named
   temporary prompt file and `codex exec ... - < /tmp/prompt-file`.
@@ -42,8 +42,12 @@ Standing rules for every call, using the
   unredirected.
 - Do not pass `-s`. Codex applies the sandbox policy from its config
   (`sandbox_mode`), which this image sets to full access for trusted IaaS
-  development. State the authorized scope in the prompt: say "do not modify
-  any files" for questions and reviews. Never pass
+  development. The `read-only` and `workspace-write` sandboxes need `bwrap`
+  to create user namespaces, which the Pod does not allow, so with `-s` every
+  command Codex runs fails with `bwrap: No permissions to create new
+  namespace` ([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
+  State the authorized scope in the prompt instead: say "do not modify any
+  files" for questions and reviews. Never pass
   `--dangerously-bypass-approvals-and-sandbox`.
 - Always pass `--ephemeral` (no session files in a disposable pod) and
   `--skip-git-repo-check` (the working directory may not be a git repository).
@@ -56,6 +60,39 @@ Standing rules for every call, using the
 - Report Codex's final message verbatim, then add at most three lines of your
   own assessment. Apply relevant findings when the original request includes
   implementation; keep review-only requests read-only.
+
+## Run and wait
+
+Codex calls take from a minute to well over an hour. Size the Bash tool call
+to the workload and never cap Codex itself:
+
+| Workload | Bash tool call |
+| --- | --- |
+| Question or explanation | foreground, `timeout: 1800000` (30 min) |
+| Plan review | foreground, `timeout: 3600000` (1 h) |
+| Code review (any `review` target), audit across many files or repositories, delegated edits, parallel calls | `run_in_background: true`, `timeout: 7200000` |
+
+- A foreground call that reaches its timeout, or a subagent's call that
+  Claude Code moves to the background earlier, keeps running in the
+  background ([background Bash commands](https://code.claude.com/docs/en/interactive-mode#background-bash-commands)).
+  Treat it as a background call and do not start a second copy.
+- Background calls have no time limit in a terminal session; their `timeout`
+  applies only to unattended sessions such as `-p`, where 2 h is the maximum
+  ([time limit](https://code.claude.com/docs/en/tools-reference#time-limit-for-background-commands)).
+- Run `codex exec` itself as the command. Do not wrap it in `timeout`,
+  `nohup`, `setsid`, or a subshell, and do not end it with `&` or `wait` on
+  jobs: a shell-detached call sends no completion notification, and a
+  `timeout` wrapper kills long reviews. For parallel calls, send one
+  background Bash call per `codex exec` in the same message.
+- After a background start, continue independent work and take the result
+  from the completion notification. Do not poll with `sleep` or `until`
+  loops, `pgrep`, Monitor, or repeated reads of the output file. When the
+  notification arrives, read the task output (Codex's final message) and the
+  log's tail.
+- To check progress or a suspected hang, read the stderr log. If its last
+  line stays `Reading additional input from stdin...`, stdin was not
+  redirected: stop the task with TaskStop and rerun with `< /dev/null`. Stop
+  a call only when it is confirmed stuck or no longer needed.
 
 ## Ask or delegate
 
@@ -89,8 +126,9 @@ refining it, or after the user agrees.
 
 ## Review code
 
-Use Codex's native review for git changes. Global flags go before `review`.
-Pick exactly one target:
+Use Codex's native review for git changes, started in the background (see
+[Run and wait](#run-and-wait)). Global flags go before `review`. Pick exactly
+one target:
 
 ```bash
 codex exec --ephemeral --skip-git-repo-check review --uncommitted < /dev/null 2> /tmp/codex-review.log
@@ -112,9 +150,8 @@ Present the findings verbatim, then your assessment.
 
 - If Codex reports that it is not logged in, tell the user to run `codex`
   once in the pod to sign in. Do not attempt to log in yourself.
-- If a call prints nothing for minutes, read the stderr log and confirm stdin
-  was redirected before retrying. A log ending in `Reading additional input
-  from stdin...` means Codex is waiting on stdin; rerun with `< /dev/null`.
+- If a call seems stuck, diagnose it from the stderr log as described in
+  [Run and wait](#run-and-wait) before retrying.
 - Retry a transient network or rate-limit failure once after any supplied retry
   delay. If it persists, report the blocker and finish independent authorized
   work. Do not treat a failed delegation as completion of the original task.

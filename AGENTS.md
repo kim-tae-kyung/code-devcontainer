@@ -108,6 +108,15 @@ The Claude `codex` and `codex-imagegen` skills use `codex exec` with
 reviews, use proper shell quoting, and inherit the configured sandbox policy
 rather than adding `-s` or bypass flags
 ([non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode)).
+The Pod does not let `bwrap` create user namespaces, so Codex's `read-only`
+and `workspace-write` sandboxes fail every command
+([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
+Calls pick foreground or `run_in_background` and the Bash `timeout` by
+workload, and wait for the completion notification. Never cap Codex with
+`timeout`, detach it with shell job control, or poll for it. The settings set
+`BASH_MAX_TIMEOUT_MS` to two hours so foreground calls are not limited to
+the 10-minute default
+([environment variables](https://code.claude.com/docs/en/env-vars#variables)).
 Every call gets an explicit stdin (`< /dev/null` or a `- < file` prompt) and
 keeps stderr in a log file rather than `/dev/null`: when stdin is not a TTY,
 `codex exec` reads it to EOF to append to the prompt, and the Bash tool's

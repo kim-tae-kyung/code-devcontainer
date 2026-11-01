@@ -259,6 +259,7 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   herdr integration status | grep '^codex: current ' >/dev/null && \
   jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF == "1"' ${HOME}/.claude/settings.json >/dev/null && \
+  jq -e '.env.BASH_MAX_TIMEOUT_MS == "7200000"' ${HOME}/.claude/settings.json >/dev/null && \
   jq -e '.leftArrowOpensAgents == false' ${HOME}/.claude.json >/dev/null && \
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
   test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --no-daemon'" && \

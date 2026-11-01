@@ -430,6 +430,20 @@ Every call passes `--ephemeral` and `--skip-git-repo-check`, and inherits the
 configured `danger-full-access` policy described under
 [Security model](#security-model), without adding `-s`
 ([Codex execution options](https://learn.chatgpt.com/docs/non-interactive-mode)).
+Codex's `read-only` and `workspace-write` sandboxes need `bwrap` to create
+user namespaces, which the Pod does not allow; with `-s` every command fails
+([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
+Read-only scope is stated in the prompt instead.
+
+The skills size each call to its workload: questions and image generation
+wait in the foreground for up to 30 minutes, plan reviews for up to an hour,
+and code reviews, large audits, and delegated edits run as background
+commands. A foreground call that reaches its timeout moves to the background
+instead of stopping, and background commands in a terminal session have no
+time limit; Claude picks up the result from the completion notification
+([background Bash commands](https://code.claude.com/docs/en/interactive-mode#background-bash-commands)).
+The skills never wrap Codex in `timeout`, detach it with `&` or `nohup`, or
+poll for it.
 Codex needs its own login in the Pod; check it with `codex login status`
 ([authentication](https://learn.chatgpt.com/docs/auth)).
 
@@ -637,7 +651,10 @@ which turns off the empty-prompt `←` gesture that opens the agents view and
 moves a working session to a background copy; the same switch appears as
 "← opens agents" in `/config`. The settings `env` sets
 `CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF=1`, which removes the "Move to background
-and exit" choice when quitting with background work.
+and exit" choice when quitting with background work. It also sets
+`BASH_MAX_TIMEOUT_MS=7200000`, raising the longest foreground Bash timeout the
+model may request from 10 minutes to 2 hours; the 2-minute default is
+unchanged ([environment variables](https://code.claude.com/docs/en/env-vars#variables)).
 
 Herdr sends finished and needs-input agent notifications to the outer
 terminal with `ui.toast.delivery = "terminal"`; this is the desktop

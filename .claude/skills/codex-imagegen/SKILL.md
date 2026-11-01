@@ -25,7 +25,14 @@ final message to stdout and progress to stderr
 
 Rules, using the [Codex CLI options](https://learn.chatgpt.com/docs/cli/reference):
 
-- Pass `timeout: 600000` to the Bash tool.
+- Run one image in the foreground with `timeout: 1800000` (30 min). Start
+  several images as separate `run_in_background: true` calls with
+  `timeout: 7200000` in one message; that timeout applies only to unattended
+  sessions such as `-p`.
+  Run `codex exec` itself as the command: no `timeout`, `nohup`, or `&`
+  wrapper. A call that reaches its timeout keeps running in the background;
+  wait for its completion notification instead of polling or starting a
+  second copy, then verify.
 - Choose an absolute destination path ending in `.png` inside the current
   project (default `<cwd>/assets/<slug>.png`). Never overwrite an existing
   file unless the user asked; use a `-v2` suffix instead. Create the
