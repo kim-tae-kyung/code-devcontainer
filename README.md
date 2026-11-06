@@ -468,6 +468,10 @@ is not an assumption or a control provided by this repository.
   ([Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
 - **Playwright** receives `--no-sandbox` in both MCP registrations
   ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
+  Claude Code's `permissions.allow` lists `mcp__playwright`, so in auto mode
+  its tools resolve by rule instead of going to the classifier
+  ([MCP rules](https://code.claude.com/docs/en/permissions#mcp),
+  [auto mode decision order](https://code.claude.com/docs/en/permission-modes#how-auto-mode-evaluates-actions)).
 - **Interactive launch flags**: the Bash alias runs `claude` as
   `claude --dangerously-skip-permissions`, the documented equivalent of the
   baked `bypassPermissions` mode, and applies only to interactive Bash

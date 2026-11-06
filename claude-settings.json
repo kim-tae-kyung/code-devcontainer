@@ -27,7 +27,10 @@
     "rust-analyzer-lsp@claude-plugins-official": true
   },
   "permissions": {
-    "defaultMode": "bypassPermissions"
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "mcp__playwright"
+    ]
   },
   "preferredNotifChannel": "terminal_bell",
   "tui": "default",

@@ -74,6 +74,15 @@ in the shared operating principles; CLI permission bypass does not enlarge the
 user's requested task scope. `bash_aliases` adds the Claude bypass flag. Codex
 needs no permission flag because its config already grants full access.
 
+The `mcp__playwright` allow rule spares auto mode a classifier call per browser
+action. It does not lift plan mode's hold on MCP tools without `readOnlyHint`,
+such as `browser_navigate`: that check runs before allow rules and hooks, so
+only a session with bypass permissions available plans without those prompts
+(observed in Claude Code 2.1.319; the
+[plan mode docs](https://code.claude.com/docs/en/permission-modes#analyze-before-you-edit-with-plan-mode)
+cover shell commands and edits, not MCP tools). Keep the bypass launch rather
+than adding rules or hooks for plan-mode Playwright prompts.
+
 `bash_aliases` runs interactive Codex with `--no-daemon`. Codex's shared
 app-server daemon runs hooks without the pane's `HERDR_*` identity, so Herdr
 cannot record or resume Codex sessions through it
