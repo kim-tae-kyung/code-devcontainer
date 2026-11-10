@@ -13,8 +13,7 @@ OVERRIDES=$(jq -n \
     --arg sa "${SERVICE_ACCOUNT:-}" \
     --arg node "${NODE_NAME:-}" \
     '{spec: {shareProcessNamespace: true, tolerations: [
-        {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"},
-        {key: "node-role.kubernetes.io/master", operator: "Exists", effect: "NoSchedule"}
+        {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}
     ]}}
     * (if $sa != "" then {spec: {serviceAccountName: $sa}} else {} end)
     * (if $node != "" then {spec: {nodeName: $node}} else {} end)')

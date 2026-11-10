@@ -6,21 +6,9 @@
   "osvVulnerabilityAlerts": true,
   "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
   "minimumReleaseAge": "7 days",
-  "internalChecksFilter": "strict",
-  "ignoreTests": false,
-  "automergeType": "pr",
   "automergeStrategy": "squash",
   "platformAutomerge": true,
-  "pinDigests": false,
   "customManagers": [
-    {
-      "customType": "regex",
-      "description": "Track the agg release pinned via the AGG_VERSION build arg",
-      "managerFilePatterns": ["/(^|/)Dockerfile$/"],
-      "matchStrings": ["ARG AGG_VERSION=(?<currentValue>v[0-9.]+)"],
-      "depNameTemplate": "asciinema/agg",
-      "datasourceTemplate": "github-releases"
-    },
     {
       "customType": "regex",
       "description": "Track the Playwright MCP server. Both pins must move together: the Dockerfile derives the bundled Chromium from this version, and codex-config.toml must request the same one",
@@ -47,12 +35,6 @@
       "description": "Automerge non-major dependency updates after the required repository checks pass",
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "automerge": true
-    },
-    {
-      "description": "Automerge lock file maintenance after the required repository checks pass; release age does not apply because no individual release is selected",
-      "matchUpdateTypes": ["lockFileMaintenance"],
-      "automerge": true,
-      "minimumReleaseAge": null
     },
     {
       "description": "Major updates require manual review",

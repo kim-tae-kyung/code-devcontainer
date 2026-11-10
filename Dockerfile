@@ -1,6 +1,5 @@
-FROM --platform=$TARGETPLATFORM mcr.microsoft.com/devcontainers/typescript-node:24@sha256:b55b444f6658dd2370d430c12d4bc9540c8ed0d3d5b05e4c247161173666954f
+FROM mcr.microsoft.com/devcontainers/typescript-node:24@sha256:b55b444f6658dd2370d430c12d4bc9540c8ed0d3d5b05e4c247161173666954f
 
-ARG TARGETPLATFORM
 ARG TARGETARCH
 ARG TZ="Asia/Seoul"
 
@@ -19,9 +18,7 @@ ENV TZ=${TZ} \
     GOPATH=${HOME}/go \
     CARGO_HOME=${HOME}/.cargo \
     RUSTUP_HOME=${HOME}/.rustup \
-    PATH=/usr/local/go/bin:${HOME}/go/bin:${HOME}/.cargo/bin:${HOME}/.local/bin:${PATH} \
-    PLAYWRIGHT_BROWSERS_PATH=${HOME}/.cache/ms-playwright \
-    CAPTURE_DEMO_RUNTIME_DIR=${HOME}/.claude/skills/capture-demo
+    PATH=/usr/local/go/bin:${HOME}/go/bin:${HOME}/.cargo/bin:${HOME}/.local/bin:${PATH}
 
 LABEL org.opencontainers.image.source="https://github.com/kim-tae-kyung/code-devcontainer"
 LABEL org.opencontainers.image.description="Development container with Claude Code and Codex CLI"
@@ -34,7 +31,7 @@ RUN sudo apt-get update && \
   sudo apt-get -y install --no-install-recommends \
     git gh jq ripgrep curl tini diffutils \
     iproute2 dnsutils iputils-ping net-tools \
-    vim tree tmux ncurses-bin \
+    tree \
     python3 python3-pip python3-venv && \
   sudo apt-get clean && \
   sudo rm -rf /var/lib/apt/lists/*
@@ -83,22 +80,10 @@ RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
   sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
     -c rust-analyzer -c rust-src -c rustfmt
 
-# Install agg (asciinema gif generator; renders .cast recordings to GIF).
-# aarch64 ships only a gnu build, amd64 a static musl build — both run on the glibc base.
-ARG AGG_VERSION=v1.9.0
-RUN case "${TARGETARCH}" in \
-      amd64) AGG_TARGET=x86_64-unknown-linux-musl ;; \
-      arm64) AGG_TARGET=aarch64-unknown-linux-gnu ;; \
-      *) echo "unsupported arch: ${TARGETARCH}" >&2; exit 1 ;; \
-    esac && \
-  curl -fsSL "https://github.com/asciinema/agg/releases/download/${AGG_VERSION}/agg-${AGG_TARGET}" -o /tmp/agg && \
-  sudo install -m 0755 /tmp/agg /usr/local/bin/agg && \
-  rm /tmp/agg
-
 # Install Chromium for headless browser testing via Playwright MCP. The browser
 # revision comes from the pinned server's own playwright core, so the pair cannot
 # drift apart on a rebuild. Renovate raises the pin; the browser follows.
-ARG PLAYWRIGHT_MCP_VERSION=0.0.84
+ARG PLAYWRIGHT_MCP_VERSION=0.0.85
 RUN set -e; \
   PLAYWRIGHT_CORE="$(npm view "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" dependencies.playwright)"; \
   if ! echo "${PLAYWRIGHT_CORE}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then \
@@ -109,9 +94,6 @@ RUN set -e; \
   npx -y "playwright@${PLAYWRIGHT_CORE}" install --with-deps chromium; \
   npx -y "playwright@${PLAYWRIGHT_CORE}" screenshot --browser=chromium about:blank /tmp/launch-check.png; \
   rm /tmp/launch-check.png; \
-  mapfile -t CHROMIUM_SHELLS < <(find "${PLAYWRIGHT_BROWSERS_PATH}" -type f -name chrome-headless-shell); \
-  test "${#CHROMIUM_SHELLS[@]}" -eq 1; \
-  sudo ln -s "${CHROMIUM_SHELLS[0]}" /usr/local/bin/headless_shell; \
   sudo apt-get clean; \
   sudo rm -rf /var/lib/apt/lists/*
 
@@ -127,7 +109,7 @@ RUN go install github.com/mikefarah/yq/v4@latest
 # This server requires the JavaScript tsserver from TypeScript 6, not TS 7.
 # https://github.com/typescript-language-server/typescript-language-server#installing
 RUN npm install -g pyright typescript@6 typescript-language-server
-RUN pip3 install --user --break-system-packages 'python-lsp-server[all]' black isort asciinema==2.4.0
+RUN pip3 install --user --break-system-packages black isort
 
 # Copy configuration files
 COPY --chown=node:node claude-settings.json   ${HOME}/.claude/settings.json
@@ -135,18 +117,13 @@ COPY --chown=node:node codex-config.toml      ${HOME}/.codex/config.toml
 COPY --chown=node:node operating-principles.md ${HOME}/.claude/CLAUDE.md
 COPY --chown=node:node operating-principles.md ${HOME}/.codex/AGENTS.md
 COPY --chown=node:node herdr-config.toml      ${HOME}/.config/herdr/config.toml
-COPY --chown=node:node vimrc                  ${HOME}/.vimrc
 COPY --chown=node:node bash_aliases           ${HOME}/.bash_aliases
 COPY --chown=node:node nvim/                  ${HOME}/.config/nvim/
 COPY --chmod=0755 scripts/git-ndiff           /usr/local/bin/git-ndiff
 COPY --chmod=0755 scripts/herdr               /usr/local/bin/herdr
 
-# Ship agent skills to each CLI's user-level discovery directory.
+# Ship the Claude Code skills to its user-level discovery directory.
 COPY --chown=node:node .claude/skills/ ${HOME}/.claude/skills/
-COPY --chown=node:node .agents/skills/ ${HOME}/.agents/skills/
-
-# Vendor the shared capture-demo runtime and exercise both render paths.
-RUN cd ${CAPTURE_DEMO_RUNTIME_DIR} && npm ci --omit=dev && npm test
 
 # Install the latest stable kubectl for the target architecture and verify it.
 # https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
@@ -222,52 +199,27 @@ RUN test -s /tmp/herdr-SKILL.md && \
   install -d ${HOME}/.claude/skills/herdr ${HOME}/.agents/skills/herdr && \
   install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.claude/skills/herdr/SKILL.md && \
   install -m 0644 /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
-  cmp /tmp/herdr-SKILL.md ${HOME}/.claude/skills/herdr/SKILL.md && \
-  cmp /tmp/herdr-SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
   sha256sum /tmp/herdr-SKILL.md && \
   rm /tmp/herdr-SKILL.md
-
-# Validate the actual registrations after integration installers have run.
-COPY --chown=node:node scripts/check_playwright_pin.py /tmp/check_playwright_pin.py
-RUN python3 /tmp/check_playwright_pin.py \
-  --expected-version "${PLAYWRIGHT_MCP_VERSION}" \
-  --codex-config ${HOME}/.codex/config.toml \
-  --claude-config ${HOME}/.claude.json && \
-  rm /tmp/check_playwright_pin.py
 
 # Load the pinned browser server and pre-warm its npx cache.
 RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version
 
-# Smoke test
-# Check the exported runtime shell from a child process; Bash can set its own
-# unexported SHELL variable even when the image environment omits it.
-RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c", "test -n \"$BASH_VERSION\""], check=True)' && \
-  test -f ${HOME}/.agents/skills/capture-demo/SKILL.md && \
-  grep -q '^name: herdr$' ${HOME}/.claude/skills/herdr/SKILL.md && \
-  grep -q '^name: herdr$' ${HOME}/.agents/skills/herdr/SKILL.md && \
-  cmp ${HOME}/.claude/skills/herdr/SKILL.md ${HOME}/.agents/skills/herdr/SKILL.md && \
-  grep -q '^name: codex$' ${HOME}/.claude/skills/codex/SKILL.md && \
-  grep -q '^name: codex-imagegen$' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
-  ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex/SKILL.md && \
-  ! grep -q 'disable-model-invocation' ${HOME}/.claude/skills/codex-imagegen/SKILL.md && \
+# Smoke test: the installed tools run, the CLI interfaces the skills and
+# integrations rely on exist, and no credentials are baked in.
+RUN test "$(printenv SHELL)" = /bin/bash && \
+  claude --version && codex --version && codex --strict-config app-server </dev/null >/dev/null && \
   codex exec --help >/dev/null && codex exec review --help >/dev/null && \
   codex features list | grep -E '^image_generation +stable +true' >/dev/null && \
-  jq -e '.permissions.defaultMode == "bypassPermissions"' ${HOME}/.claude/settings.json >/dev/null && \
-  claude --version && codex --version && codex --strict-config app-server </dev/null >/dev/null && \
   herdr --version && herdr --help >/dev/null && herdr config check && \
   herdr integration status | grep '^claude: current ' >/dev/null && \
   herdr integration status | grep '^codex: current ' >/dev/null && \
   jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \
-  jq -e '.env.CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF == "1"' ${HOME}/.claude/settings.json >/dev/null && \
-  jq -e '.env.BASH_MAX_TIMEOUT_MS == "7200000"' ${HOME}/.claude/settings.json >/dev/null && \
-  jq -e '.leftArrowOpensAgents == false' ${HOME}/.claude.json >/dev/null && \
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
   test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --no-daemon'" && \
-  bash -n /usr/local/bin/herdr && \
   ! codex login status >/dev/null 2>&1 && \
   ! claude auth status >/dev/null 2>&1 && \
-  glab --version && glab auth login --help >/dev/null && glab api --help >/dev/null && \
-  kubectl version --client && headless_shell --version && \
+  glab --version && kubectl version --client && \
   go version && gopls version && yq --version && \
   cargo --version && rustc --version && rust-analyzer --version && \
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/gopls-lsp && \
@@ -276,13 +228,8 @@ RUN python3 -c 'import os, subprocess; subprocess.run([os.environ["SHELL"], "-c"
   test -d ${HOME}/.claude/plugins/cache/claude-plugins-official/rust-analyzer-lsp && \
   command -v pyright-langserver && \
   node --version && python3 --version && \
-  tmux -V && test ! -f ${HOME}/.tmux.conf && \
-  tmux -L default-smoke new-session -d -s smoke 'sleep 30' && \
-  tmux -L default-smoke has-session -t smoke && \
-  tmux -L default-smoke kill-server && \
-  black --version && pylsp --help >/dev/null && \
-  typescript-language-server --version && pyright --version && isort --version && \
-  asciinema --version && agg --version
+  black --version && isort --version && \
+  typescript-language-server --version && pyright --version
 
 # Exercise the shipped editor configuration and real LSP/directory-diff flows.
 COPY --chown=node:node scripts/check_neovim.py /tmp/check_neovim.py

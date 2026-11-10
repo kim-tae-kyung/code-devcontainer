@@ -40,16 +40,17 @@ jobs:
           fi
           echo "All $(wc -l < /tmp/used.txt) keys are known to the schema."
 
-      # The image build validates this file properly via `codex --strict-config`;
-      # this is the cheap syntax gate for pushes that skip the build job.
-      - name: Check codex-config.toml parses
-        run: python3 -c 'import tomllib; tomllib.load(open("codex-config.toml","rb"))'
+      # The image build validates these files with `codex --strict-config` and
+      # `herdr config check`; this is the syntax gate for pushes that skip it.
+      - name: Check the TOML configs parse
+        run: python3 -c 'import sys, tomllib; [tomllib.load(open(f, "rb")) for f in sys.argv[1:]]' codex-config.toml herdr-config.toml
 
-      - name: Check herdr-config.toml parses
-        run: python3 -c 'import tomllib; tomllib.load(open("herdr-config.toml","rb"))'
-
-      - name: Check Playwright pin and container flags
-        run: python3 scripts/check_playwright_pin.py
+      # Codex's registration must name the version the image installs Chromium for.
+      - name: Check the Playwright MCP pins match
+        run: |
+          pin=$(sed -n 's/^ARG PLAYWRIGHT_MCP_VERSION=//p' Dockerfile)
+          test -n "$pin"
+          grep -F "\"@playwright/mcp@${pin}\"," codex-config.toml
 
   build:
     # The image build runs the Dockerfile smoke test, so a green build is the

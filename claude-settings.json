@@ -12,20 +12,6 @@
     "CLAUDE_CODE_DISABLE_BG_EXIT_HANDOFF": "1",
     "BASH_MAX_TIMEOUT_MS": "7200000"
   },
-  "extraKnownMarketplaces": {
-    "claude-plugins-official": {
-      "source": {
-        "source": "github",
-        "repo": "anthropics/claude-plugins-official"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "gopls-lsp@claude-plugins-official": true,
-    "pyright-lsp@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
-  },
   "permissions": {
     "defaultMode": "bypassPermissions",
     "allow": [

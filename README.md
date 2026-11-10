@@ -17,10 +17,9 @@ existing Pods or older CLI releases.
   - `@openai/codex` — installed via npm
 - **Browser server** (pre-configured for **both** Claude Code and Codex):
   - **Playwright** — headless Chromium browser automation for UI testing/debugging in containers (both CLIs run the same pinned local MCP server)
-- **Development Tools**: `git`, `gh`, `glab`, `jq`, `ripgrep`, `nvim` (default editor), `vim`, `tree`, and common networking utilities. The image installs the latest stable Neovim from its [official release assets](https://github.com/neovim/neovim/releases), verifies the SHA-256 digest, and requires version 0.12 or newer. It also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/), and the latest stable GitLab CLI from its [official releases](https://gitlab.com/gitlab-org/cli/-/releases) with SHA-256 verification.
-- **Terminal multiplexers**: the latest stable Herdr release as the primary workspace, with Claude Code and Codex session integrations. tmux remains installed with its default settings for optional use and demo capture.
-- **LSP Support**: `gopls`, `pyright`, `typescript-language-server`, and `rust-analyzer` are connected to Neovim's native LSP client and Claude Code's official code-intelligence plugins. `pylsp` remains available as an optional Python server. TypeScript stays on the latest 6.x release for compatibility with the [language server](https://github.com/typescript-language-server/typescript-language-server#installing); Rust includes `rust-src` and `rustfmt`.
-- **Demo capture** (→ GIF): `asciinema` + `agg` in a fresh isolated tmux server, plus `sharp` for browser screenshots, wired up by an explicit-only `capture-demo` skill for both CLIs.
+- **Development Tools**: `git`, `gh`, `glab`, `jq`, `ripgrep`, `nvim` (default editor), `tree`, and common networking utilities. The image installs the latest stable Neovim from its [official release assets](https://github.com/neovim/neovim/releases), verifies the SHA-256 digest, and requires version 0.12 or newer. It also installs the latest stable `kubectl` for its target architecture using the [official binary and checksum](https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/), and the latest stable GitLab CLI from its [official releases](https://gitlab.com/gitlab-org/cli/-/releases) with SHA-256 verification.
+- **Terminal multiplexer**: the latest stable Herdr release, with Claude Code and Codex session integrations.
+- **LSP Support**: `gopls`, `pyright`, `typescript-language-server`, and `rust-analyzer` are connected to Neovim's native LSP client and Claude Code's official code-intelligence plugins. TypeScript stays on the latest 6.x release for compatibility with the [language server](https://github.com/typescript-language-server/typescript-language-server#installing); Rust includes `rust-src` and `rustfmt`.
 - **Codex from Claude Code**: two model-invocable Claude Code skills, `codex` (delegate a task, review a plan, or run Codex's native code review) and `codex-imagegen` (raster images through Codex's bundled `imagegen` skill), both driving `codex exec` non-interactively — no plugin and no MCP bridge.
 
 ## Usage
@@ -145,17 +144,8 @@ host credentials ([ServiceAccounts](https://kubernetes.io/docs/tasks/configure-p
 ### Terminal sessions (Herdr)
 
 Use Herdr for interactive work. Start it directly through the Kubernetes
-connection above, or run it from a shell after connecting over SSH or entering
-a local container. Keep tmux and Herdr in separate connections so their default
-`Ctrl-b` prefixes do not conflict.
-
-```bash
-# From a shell inside the server or container
-herdr
-
-# Optional tmux session, using its default settings
-tmux
-```
+connection above, or run `herdr` from a shell after connecting over SSH or
+entering a local container.
 
 Herdr starts or reattaches to its background session. Press `Ctrl-b q` to
 detach without stopping panes. Repeat `kubectl exec -it POD_NAME -- herdr` to
@@ -179,12 +169,8 @@ skill from the upstream `master` branch for both agents
 The skill activates only when Herdr is explicitly requested and the agent is
 running in a Herdr-managed pane (`HERDR_ENV=1`).
 
-The skill tracks upstream independently of the Herdr binary. Version skew is
-intentional; use the installed `herdr --help` to check available commands.
-Remote `ADD` makes source changes invalidate the skill installation layer even
-when earlier build layers are cached ([Docker cache rules](https://docs.docker.com/build/cache/invalidation/)).
-A failed download, empty file, or missing expected skill header stops the build
-instead of falling back to the binary's bundled copy.
+The skill tracks upstream independently of the Herdr binary, so the two can
+differ; the installed `herdr --help` is the authority for available commands.
 
 To install or refresh the same official skill on a local machine with Herdr
 installed, run:
@@ -230,9 +216,8 @@ hook (see [Configuration](#configuration)).
 
 Open `nvim` in a Herdr pane. The image sets `EDITOR`, `VISUAL`, and Git's system
 `core.editor` to `nvim`; explicit user Git configuration takes precedence.
-Vim and its `.vimrc` remain available. Neovim enables line numbers, persistent
-undo, and four-space indentation; Go uses tabs and JavaScript/TypeScript use
-two spaces. Project [`.editorconfig`](https://neovim.io/doc/user/plugins/#editorconfig)
+Neovim enables line numbers, persistent undo, and four-space indentation; Go
+uses tabs and JavaScript/TypeScript use two spaces. Project [`.editorconfig`](https://neovim.io/doc/user/plugins/#editorconfig)
 settings take precedence.
 
 Select text with `v`, `V`, or a mouse drag, then press `y`; `yy` copies a line.
@@ -284,7 +269,6 @@ share the installed executables, with separate server processes per client.
 | JavaScript, TypeScript, JSX, TSX | `typescript-language-server --stdio` | Nearest `tsconfig.json`, `jsconfig.json`, or `package.json`, then `.git` |
 | Rust | `rust-analyzer` | Cargo workspace, or `rust-project.json` / `.git` |
 
-Python uses only Pyright in Neovim, avoiding duplicate diagnostics from `pylsp`.
 Project configuration controls analysis and dependency resolution; activate a
 Python virtual environment before starting Neovim when appropriate. Rust
 standard-library sources are installed at build time for navigation
@@ -373,36 +357,6 @@ npm run dev  # e.g. Vite on localhost:5173
 # "Click the submit button and verify the result"
 ```
 
-### Capturing demos (GIF)
-
-The `capture-demo` skill turns browser flows or isolated terminal sessions into
-task-specific screenshots or an **animated GIF** for docs, PRs, or issues. A
-browser capture starts with an evidence contract for the target artifact, waits
-for stable application state, reproduces the documented interaction, and
-verifies the final frame. Creation and destructive flows stop at the final
-confirmation boundary unless the request explicitly authorizes submission.
-Every terminal recording creates a private tmux socket and a fresh session,
-then removes that server when recording ends.
-
-The skill is user-invocable only. Call it explicitly as `$capture-demo` in
-Codex or `/capture-demo` in Claude Code; ordinary recording-related language
-does not activate it.
-
-```bash
-# Command -> fresh isolated tmux session -> GIF (asciinema + agg)
-~/.claude/skills/capture-demo/terminal_capture.sh -o demo.gif -c "npm test; sleep 1"
-
-# Interactive fresh tmux session -> GIF; type exit to finish
-~/.claude/skills/capture-demo/terminal_capture.sh -o demo.gif --interactive --duration 60
-
-# Browser flow -> GIF: capture context, interaction, and proved end state as
-# frames/001.png, frames/002.png, ... then assemble (sharp, no ffmpeg):
-node ~/.claude/skills/capture-demo/frames_to_gif.mjs frames/ --out demo.gif --delay 900 --width 1000
-```
-
-Generic page-open images are not accepted as evidence for distinct procedures.
-Existing outputs are not overwritten unless `--force` is supplied.
-
 ### Delegating to Codex from Claude Code
 
 Two user-level skills let a Claude Code session hand work to the Codex CLI in
@@ -426,33 +380,15 @@ Claude invokes them from ordinary language ("ask codex", "codex한테 이 plan
   and the skill checks the PNG header and views the image before reporting
   the path and dimensions.
 
-Every call passes `--ephemeral` and `--skip-git-repo-check`, and inherits the
-configured `danger-full-access` policy described under
-[Security model](#security-model), without adding `-s`
-([Codex execution options](https://learn.chatgpt.com/docs/non-interactive-mode)).
-Codex's `read-only` and `workspace-write` sandboxes need `bwrap` to create
-user namespaces, which the Pod does not allow; with `-s` every command fails
+Every call inherits the configured `danger-full-access` policy described under
+[Security model](#security-model). Codex's `read-only` and `workspace-write`
+sandboxes need `bwrap` to create user namespaces, which the Pod does not allow,
+so the skills never pass `-s` and state a read-only scope in the prompt instead
 ([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
-Read-only scope is stated in the prompt instead.
-
-The skills size each call to its workload: questions and image generation
-wait in the foreground for up to 30 minutes, plan reviews for up to an hour,
-and code reviews, large audits, and delegated edits run as background
-commands. A foreground call that reaches its timeout moves to the background
-instead of stopping, and background commands in a terminal session have no
-time limit; Claude picks up the result from the completion notification
-([background Bash commands](https://code.claude.com/docs/en/interactive-mode#background-bash-commands)).
-The skills never wrap Codex in `timeout`, detach it with `&` or `nohup`, or
-poll for it.
-Codex needs its own login in the Pod; check it with `codex login status`
+The skill files hold the remaining call rules: flags, stdin and stderr handling,
+and foreground or background timeouts by workload. Codex needs its own login in
+the Pod; check it with `codex login status`
 ([authentication](https://learn.chatgpt.com/docs/auth)).
-
-Claude Code's default bypass mode applies to these calls; no custom approval
-hook or prompt-character filter is installed
-([permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
-Review-only requests remain read-only by instruction. When the original request
-includes implementation, Claude can apply relevant findings without a second
-approval. Recoverable failures get one retry, with partial edits checked first.
 
 ## Security model
 
@@ -499,12 +435,10 @@ Files baked into the image at build time:
 - `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP servers)
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`
-- `vimrc` → `~/.vimrc`
 - `bash_aliases` → `~/.bash_aliases` (interactive Claude permission bypass and in-process Codex)
 - `scripts/herdr` → `/usr/local/bin/herdr` (waits for a terminal size, then runs `/opt/herdr/herdr`)
 - `nvim/init.lua` → `~/.config/nvim/init.lua` (native DiffTool and LSP)
-- `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `capture-demo`, `codex`, `codex-imagegen`)
-- `.agents/skills/` → `~/.agents/skills/` (Codex skill: `capture-demo`)
+- `.claude/skills/` → `~/.claude/skills/` (Claude Code skills: `codex`, `codex-imagegen`)
 
 The build also installs Herdr's generated Claude Code and Codex hooks, and
 writes the latest upstream `herdr` skill to both user-level skill directories.
@@ -523,19 +457,19 @@ and keep up to 50 MB of scrollback per pane
 Keys, theme, and other settings use upstream defaults. Herdr's shell setting
 also remains at its upstream default, which reads the image's `SHELL=/bin/bash`
 environment variable ([Herdr configuration](https://herdr.dev/docs/configuration/)).
-No custom tmux configuration is baked into the image.
 
-Claude Code gets language intelligence from official marketplace plugins. Playwright uses a user-scoped registration in `~/.claude.json`, created
-at build time, so it is available in every project
+Claude Code gets language intelligence from official marketplace plugins. The
+build installs them with `claude plugin install`, which records them in
+`enabledPlugins` of the user settings
+([plugin installation](https://code.claude.com/docs/en/discover-plugins)).
+Playwright uses a user-scoped registration in `~/.claude.json`, created at build
+time, so it is available in every project
 ([MCP scope](https://code.claude.com/docs/en/mcp#user-scope)). Both agents use
-`PLAYWRIGHT_MCP_VERSION`; `codex-config.toml` mirrors that pin and Renovate
-updates the two source locations together. CI checks the source pin, and the
-image build checks both installed registrations. The Chromium revision comes
-from the pinned server's Playwright dependency
+`PLAYWRIGHT_MCP_VERSION`; `codex-config.toml` mirrors that pin, Renovate updates
+the two source locations together, and CI checks that they match. The Chromium
+revision comes from the pinned server's Playwright dependency
 ([Playwright browsers](https://playwright.dev/docs/browsers)).
 
-`headless_shell` on `PATH` points to the installed Chromium headless shell
-([Playwright headless shell](https://playwright.dev/docs/browsers#chromium-headless-shell)).
 The working directory is `/workspace`.
 
 ### Models, effort, and operating instructions
@@ -567,12 +501,12 @@ holds the agent-specific rationale:
   choices, explain skill blockers, delegate bounded tasks, and limit repeated
   verification to new evidence
   ([GPT-6.1 Sol prompting guidance](https://developers.openai.com/api/docs/guides/latest-model?model=gpt-6.1-sol#prompting-best-practices)).
-- For Claude Opus 5.5 and Fable 5.1, the instructions require task completion,
+- For Claude Opus 5.5 and Fable 5.2, the instructions require task completion,
   targeted edits, proportional tests, independent tool-call batching, brief
   progress updates, and preservation of goals and unfinished work across
   compaction
   ([Opus 5.5 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5),
-  [Fable 5.1 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-1)).
+  [Fable 5.2 prompting guidance](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2)).
 
 The image installs the shared principles as each CLI's user-level instruction
 file: `~/.claude/CLAUDE.md` and `~/.codex/AGENTS.md`. Claude Code has no
@@ -593,7 +527,7 @@ request's main language: a plan is saved as a file, but it is written for the
 user's approval rather than for the repository. Replies use concise, plain
 language.
 
-Codex memory generation and injection are disabled, and `history.persistence`
+Codex's `memories` feature is off, and `history.persistence`
 is `none`; this setting controls `history.jsonl`, not all session storage
 ([Codex configuration](https://learn.chatgpt.com/docs/config-file/config-reference)).
 Claude auto memory is disabled and `cleanupPeriodDays` is `3`
@@ -691,11 +625,12 @@ kubectl exec -it POD_NAME -- env TERM_PROGRAM=ghostty herdr
 ```
 
 Claude Remote Control is enabled for every interactive session in the baked-in settings, along with its native mobile push options. It requires a `claude.ai` login inside the running pod and outbound HTTPS access; credentials are deliberately not baked into the image. Remote Control makes outbound connections and does not require an inbound Kubernetes Service.
+
 ## Build & Push
 
 ### Continuous integration
 
-`ci.yml` runs on every pull request and on pushes to `main`, and supports manual dispatch. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, and checks the Playwright pin and flags. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test. Manual CI runs build both `linux/amd64` and `linux/arm64` on native Ubuntu 26.04 runners without publishing an image:
+`ci.yml` runs on every pull request and on pushes to `main`, and supports manual dispatch. It validates `claude-settings.json` against the [published settings schema](https://json.schemastore.org/claude-code-settings.json) and additionally compares key sets, because the schema allows additional properties and would otherwise accept keys Claude Code does not implement. It also parses `codex-config.toml` and `herdr-config.toml`, and checks that the two Playwright MCP pins match. Pull requests additionally build `linux/amd64`, which runs the Dockerfile smoke test. Manual CI runs build both `linux/amd64` and `linux/arm64` on native Ubuntu 26.04 runners without publishing an image:
 
 ```bash
 gh workflow run ci.yml
@@ -737,5 +672,16 @@ format does not record the Dockerfile's `SHELL` instruction, so the Bash-only
 [Dockerfile `SHELL`](https://docs.docker.com/reference/dockerfile/#shell)).
 Use `linux/amd64` on a native amd64 host. Publish the combined image through
 the release workflow so each architecture runs its Chromium check natively.
+
+The Neovim step reads the GitHub release API. From an address that has used up
+the [unauthenticated rate limit](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api)
+it fails with `403`; pass a token through the same build secret the workflows
+use ([Podman `--secret`](https://docs.podman.io/en/latest/markdown/podman-build.1.html#secret-id-id-src-envorfile-env-env-type-file-env)):
+
+```bash
+GH_TOKEN="$(gh auth token)" podman build --format docker --platform linux/arm64 \
+  --secret id=github_token,env=GH_TOKEN -t code-devcontainer:local .
+```
+
 For a local refresh of unpinned tools, add `--no-cache`
 ([Podman build options](https://docs.podman.io/en/latest/markdown/podman-build.1.html)).

@@ -13,6 +13,9 @@ settings and TOML checks but not the image smoke test; run the smoke test
 locally (`podman build --format docker --platform linux/arm64 .`) when a change
 touches the Dockerfile. Podman's default OCI format ignores the Dockerfile's
 `SHELL` instruction, so its Bash-only `RUN` steps fail without `--format docker`.
+When the Neovim step fails with `403`, the address has used up GitHub's
+unauthenticated API limit: add `--secret id=github_token,env=GH_TOKEN` with
+`GH_TOKEN="$(gh auth token)"`.
 
 ## No backward compatibility
 
@@ -36,7 +39,6 @@ When opening this repository, check the latest release and both pins:
 ```bash
 npm view @playwright/mcp version
 rg -n 'PLAYWRIGHT_MCP_VERSION=|@playwright/mcp@' Dockerfile codex-config.toml
-python3 scripts/check_playwright_pin.py
 ```
 
 During implementation, raise both pins if a newer release exists. For a
@@ -45,10 +47,8 @@ Renovate also updates both pins. The image derives Chromium from the pinned
 server's Playwright dependency; Playwright needs its matching browser binaries
 ([browser installation](https://playwright.dev/docs/browsers)).
 
-CI compares the source pin and Codex registration. The image build compares
-both installed registrations with the build arg after the integration
-installers run, and also exercises Chromium. `headless_shell` on `PATH` points to
-the installed browser so documentation renderers can find it.
+CI checks that the two pins match. The image build launches the Chromium it
+installed for the pin.
 
 Release builds use separate native `ubuntu-26.04` and `ubuntu-26.04-arm`
 runners, then combine their digests. Preserve that arrangement and use a native
