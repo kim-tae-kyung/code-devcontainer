@@ -468,7 +468,12 @@ time, so it is available in every project
 `PLAYWRIGHT_MCP_VERSION`; `codex-config.toml` mirrors that pin, Renovate updates
 the two source locations together, and CI checks that they match. The Chromium
 revision comes from the pinned server's Playwright dependency
-([Playwright browsers](https://playwright.dev/docs/browsers)).
+([Playwright browsers](https://playwright.dev/docs/browsers)). The image
+installs the full Chromium build without the separate headless shell, because
+the server runs headless through the `chromium` channel
+([new headless mode](https://playwright.dev/docs/browsers#chromium-new-headless-mode)).
+The server package and its registry metadata are cached in the image, so
+starting it needs no access to the npm registry.
 
 The working directory is `/workspace`.
 

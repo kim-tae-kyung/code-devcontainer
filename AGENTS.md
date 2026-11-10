@@ -48,7 +48,16 @@ server's Playwright dependency; Playwright needs its matching browser binaries
 ([browser installation](https://playwright.dev/docs/browsers)).
 
 CI checks that the two pins match. The image build launches the Chromium it
-installed for the pin.
+installed for the pin. It installs the full build only (`--no-shell`): the
+server runs headless through the `chromium` channel, so the launch check passes
+`--channel=chromium` too
+([new headless mode](https://playwright.dev/docs/browsers#chromium-new-headless-mode)).
+
+`npx` reads the package metadata from the registry or the npm cache on every
+start, including for a cached exact version. The pre-warm step therefore clears
+the downloaded tarballs, caches the metadata with a second run, and ends with
+`npx --offline` so a build fails if the server would need the registry to start.
+Other install steps clear the npm and Go caches in the same `RUN`.
 
 Release builds use separate native `ubuntu-26.04` and `ubuntu-26.04-arm`
 runners, then combine their digests. Preserve that arrangement and use a native

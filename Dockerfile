@@ -83,6 +83,9 @@ RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
 # Install Chromium for headless browser testing via Playwright MCP. The browser
 # revision comes from the pinned server's own playwright core, so the pair cannot
 # drift apart on a rebuild. Renovate raises the pin; the browser follows.
+# The server runs the full Chromium build in headless mode (the `chromium`
+# channel), so the separate headless shell is not installed.
+# https://playwright.dev/docs/browsers#chromium-new-headless-mode
 ARG PLAYWRIGHT_MCP_VERSION=0.0.85
 RUN set -e; \
   PLAYWRIGHT_CORE="$(npm view "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" dependencies.playwright)"; \
@@ -91,9 +94,9 @@ RUN set -e; \
     exit 1; \
   fi; \
   echo "Installing Chromium for playwright ${PLAYWRIGHT_CORE}"; \
-  npx -y "playwright@${PLAYWRIGHT_CORE}" install --with-deps chromium; \
-  npx -y "playwright@${PLAYWRIGHT_CORE}" screenshot --browser=chromium about:blank /tmp/launch-check.png; \
-  rm /tmp/launch-check.png; \
+  npx -y "playwright@${PLAYWRIGHT_CORE}" install --with-deps --no-shell chromium; \
+  npx -y "playwright@${PLAYWRIGHT_CORE}" screenshot --browser=chromium --channel=chromium about:blank /tmp/launch-check.png; \
+  rm -rf /tmp/launch-check.png "${HOME}/.npm"; \
   sudo apt-get clean; \
   sudo rm -rf /var/lib/apt/lists/*
 
@@ -103,12 +106,15 @@ RUN echo "export PATH=\"/usr/local/go/bin:${HOME}/go/bin:${HOME}/.cargo/bin:${HO
 # Create workspace
 RUN sudo install -d -o node -g node /workspace
 
-# Install LSPs and formatters
-RUN go install golang.org/x/tools/gopls@latest
-RUN go install github.com/mikefarah/yq/v4@latest
+# Install LSPs and formatters. Each step drops the download and build caches
+# it leaves behind; only the installed tools stay in the layer.
+RUN go install golang.org/x/tools/gopls@latest && \
+  go install github.com/mikefarah/yq/v4@latest && \
+  go clean -cache -modcache
 # This server requires the JavaScript tsserver from TypeScript 6, not TS 7.
 # https://github.com/typescript-language-server/typescript-language-server#installing
-RUN npm install -g pyright typescript@6 typescript-language-server
+RUN npm install -g pyright typescript@6 typescript-language-server && \
+  npm cache clean --force
 RUN pip3 install --user --break-system-packages black isort
 
 # Copy configuration files
@@ -154,7 +160,7 @@ RUN GLAB_RELEASE="$(curl -fsSL https://gitlab.com/api/v4/projects/gitlab-org%2Fc
 RUN curl -fsSL https://claude.ai/install.sh | bash
 
 # Install Codex CLI
-RUN npm install -g @openai/codex
+RUN npm install -g @openai/codex && npm cache clean --force
 
 # Install code intelligence plugins.
 # https://code.claude.com/docs/en/discover-plugins
@@ -202,8 +208,13 @@ RUN test -s /tmp/herdr-SKILL.md && \
   sha256sum /tmp/herdr-SKILL.md && \
   rm /tmp/herdr-SKILL.md
 
-# Load the pinned browser server and pre-warm its npx cache.
-RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version
+# Install the pinned browser server into the npx cache. npx still reads the
+# package metadata on every start, so drop the downloaded tarballs, let a second
+# run cache the metadata alone, and prove the server starts without the registry.
+RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
+  npm cache clean --force && \
+  npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
+  npx --offline -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version
 
 # Smoke test: the installed tools run, the CLI interfaces the skills and
 # integrations rely on exist, and no credentials are baked in.
