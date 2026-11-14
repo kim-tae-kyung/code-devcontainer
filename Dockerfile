@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/typescript-node:24@sha256:b55b444f6658dd2370d430c12d4bc9540c8ed0d3d5b05e4c247161173666954f
+FROM mcr.microsoft.com/devcontainers/typescript-node:26@sha256:56fa16455e6339820009b816a0ae9d63c76b3e75cbd3c50f0830e8196692baa2
 
 ARG TARGETARCH
 ARG TZ="Asia/Seoul"

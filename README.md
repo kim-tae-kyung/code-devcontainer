@@ -10,7 +10,7 @@ existing Pods or older CLI releases.
 
 ## Features
 
-- **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:24` (digest-pinned)
+- **Base Image**: `mcr.microsoft.com/devcontainers/typescript-node:26` (digest-pinned, [Node.js Active LTS](https://nodejs.org/en/about/previous-releases))
 - **Languages**: Node.js, Python 3, Go (latest), Rust (stable, minimal profile)
 - **AI Tools**:
   - **Claude Code** (Anthropic) — installed via the official native installer
