@@ -4,7 +4,9 @@
   "timezone": "Asia/Seoul",
   "labels": ["dependencies"],
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "dependencyDashboard": {
+    "osvVulnerabilitySummary": "unresolved"
+  },
   "minimumReleaseAge": "7 days",
   "automergeStrategy": "squash",
   "platformAutomerge": true,
