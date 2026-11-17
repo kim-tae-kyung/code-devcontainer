@@ -14,6 +14,12 @@ Write code, comments, commits, and docs in English unless told otherwise. Write 
 - Run required checks and proportional tests. Avoid redundant tests and repeated verification without new evidence.
 - Preserve goals, constraints, decisions, and unfinished work across compaction.
 
+## Engineering
+
+- Prefer what upstream and the dependencies already provide. Write custom code only for what they lack, and keep it small.
+- Make the basic function solid before adding to it. No speculative options, layers or abstractions.
+- Keep code, comments and docs compact, concise and generic: clear, unambiguous, tied to no particular environment.
+
 ## Documentation
 
 For durable documentation, cite official sources for external claims, describe current behavior, and avoid environment-specific assumptions unless the artifact defines that environment.
