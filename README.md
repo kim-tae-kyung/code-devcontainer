@@ -402,6 +402,27 @@ is not an assumption or a control provided by this repository.
   Its built-in exceptions still apply; this setting does not promise that every
   possible prompt disappears
   ([Claude permission modes](https://code.claude.com/docs/en/permission-modes#skip-all-checks-with-bypasspermissions-mode)).
+- **Accounts without bypass**: when an organization's managed settings set
+  `permissions.disableBypassPermissionsMode` to `"disable"`, Claude Code skips
+  the bypass request from the alias and the baked `defaultMode`, shows
+  `Bypass permissions mode was disabled by settings`, and starts in its built-in
+  default: auto mode, or Manual when auto mode is unavailable (observed in
+  Claude Code 2.1.326;
+  [starting mode](https://code.claude.com/docs/en/permission-modes#which-mode-a-session-starts-in)).
+  The notice stays because the alias keeps requesting bypass for accounts that
+  allow it. `claude-settings.json` gives the auto mode classifier an `autoMode`
+  block that keeps every built-in rule (`"$defaults"`), describes the
+  disposable Pod in a Host containment entry, and adds a Pod-Local Operations
+  exception for file and process actions whose effects stay in the Pod. Git
+  work that exists only in the Pod and anything that reaches outside it still
+  go through the classifier's usual rules
+  ([classifier configuration](https://code.claude.com/docs/en/auto-mode-config#where-the-classifier-reads-configuration),
+  [allow rules](https://code.claude.com/docs/en/auto-mode-config#override-the-block-and-allow-rules)).
+  The image names no site-specific hosts, accounts, or clusters: add trusted
+  infrastructure for your environment in each Pod from the **Auto mode** tab
+  of `/permissions`, which saves to `~/.claude/settings.json`, and check the
+  result with `claude auto-mode config`
+  ([edit rules](https://code.claude.com/docs/en/auto-mode-config#edit-rules-from-permissions)).
 - **Playwright** receives `--no-sandbox` in both MCP registrations
   ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
   Claude Code's `permissions.allow` lists `mcp__playwright`, so in auto mode
@@ -431,7 +452,7 @@ available, Claude Code does not enforce plan mode's edit and command blocks
 
 Files baked into the image at build time:
 
-- `claude-settings.json` → `~/.claude/settings.json` (Claude Code permissions/behavior)
+- `claude-settings.json` → `~/.claude/settings.json` (Claude Code permissions, auto mode classifier context, and behavior)
 - `codex-config.toml` → `~/.codex/config.toml` (Codex model, sandbox, MCP servers)
 - `operating-principles.md` → `~/.claude/CLAUDE.md` **and** `~/.codex/AGENTS.md` (global agent instructions)
 - `herdr-config.toml` → `~/.config/herdr/config.toml`

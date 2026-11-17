@@ -83,6 +83,22 @@ in the shared operating principles; CLI permission bypass does not enlarge the
 user's requested task scope. `bash_aliases` adds the Claude bypass flag. Codex
 needs no permission flag because its config already grants full access.
 
+Some operator accounts receive managed settings that disable bypass. Claude
+Code then skips the alias flag and the baked `defaultMode` and starts in its
+built-in auto mode (observed in Claude Code 2.1.326), so `claude-settings.json`
+also carries an `autoMode` block. The classifier reads `autoMode` only from
+user, managed, or `--settings` scope, which the baked user settings satisfy
+([where the classifier reads configuration](https://code.claude.com/docs/en/auto-mode-config#where-the-classifier-reads-configuration)).
+Keep `"$defaults"` first in every `autoMode` list so the entries extend the
+built-in rules rather than replace them, and limit the entries to facts the
+image defines: the disposable single-user Pod, its credentials, and in-Pod file
+and process actions. This repository is public: keep site-specific hosts,
+accounts, namespaces, and clusters out of it; users add those in each Pod. Run
+`claude auto-mode critique` after changing the entries. Do not choose the mode
+per account with a wrapper or alias logic: the CLI already falls back from a
+refused bypass request. The smoke test checks that `claude auto-mode config`
+holds both the built-in rules and the Pod entries.
+
 The `mcp__playwright` allow rule spares auto mode a classifier call per browser
 action. It does not lift plan mode's hold on MCP tools without `readOnlyHint`,
 such as `browser_navigate`: that check runs before allow rules and hooks, so

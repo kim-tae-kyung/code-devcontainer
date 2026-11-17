@@ -18,6 +18,16 @@
       "mcp__playwright"
     ]
   },
+  "autoMode": {
+    "environment": [
+      "$defaults",
+      "**Host containment** (replaces the default Host containment entry): Claude Code runs as user `node` in a disposable, single-user Kubernetes development Pod built from the code-devcontainer image. The operator is the user directing this session; they replace the Pod rather than repairing it, and no other user shares it. The launcher mounts no persistent volumes, so the container filesystem is lost when the Pod is replaced, apart from work pushed elsewhere. The Pod still sits in a shared cluster and network: other Pods, nodes, and namespaces are neighbours, and deleting or restarting this Pod is not routine because it discards unpushed work. The image does not restrict network egress. Kubernetes access from the Pod (its ServiceAccount or a kubeconfig the operator provided) and the SSH keys, Git configuration, and GitHub and GitLab CLI credentials the operator copied into the Pod are the operator's task credentials; the agent operates those identities for the operator's tasks, but holding them does not make other repositories, organizations, hosts, or namespaces trusted. Node-level credentials (kubelet certificates, the container runtime) and cloud instance-metadata credentials remain hosting-layer credentials."
+    ],
+    "allow": [
+      "$defaults",
+      "Pod-Local Operations: The user authorizes actions whose effects stay inside this disposable Pod (see Host containment): creating, editing, overwriting, or deleting files anywhere in the Pod's filesystem, including outside the working repository, and starting, restarting, or stopping local processes and services in the Pod other than the running Claude Code, Codex, and Herdr processes. This exception covers Irreversible Local Destruction, Interfere With Workloads, and the project-scope limit of Local Operations for those in-Pod targets. Judge by what a command can reach, not by its stated purpose; Unverifiable Deletion Target still applies. It does not cover destroying git work that exists only in this Pod (uncommitted, untracked, stashed, or unpushed state, or a whole repository or worktree directory), which follows Irreversible Local Destruction because replacing the Pod cannot restore it; edits to files that change where future network traffic, git remotes, or package installs go; anything whose effect can reach outside the Pod, such as listeners on non-loopback addresses, outbound requests, remote hosts, cluster or cloud resources, pushes, uploads, or package installs from public registries; executing code from external sources; reading or exposing credentials; or Self-Modification, Instruction Poisoning, Session Transcript Tampering, Unauthorized Persistence, Logging/Audit Tampering, Tmux Self Drive, Create Unsafe Agents, and Auto-Mode Bypass. Those follow the other rules."
+    ]
+  },
   "preferredNotifChannel": "terminal_bell",
   "tui": "default",
   "autoMemoryEnabled": false,

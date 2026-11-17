@@ -217,7 +217,8 @@ RUN npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version && \
   npx --offline -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" --version
 
 # Smoke test: the installed tools run, the CLI interfaces the skills and
-# integrations rely on exist, and no credentials are baked in.
+# integrations rely on exist, the baked auto mode entries extend the built-in
+# classifier rules, and no credentials are baked in.
 RUN test "$(printenv SHELL)" = /bin/bash && \
   claude --version && codex --version && codex --strict-config app-server </dev/null >/dev/null && \
   codex exec --help >/dev/null && codex exec review --help >/dev/null && \
@@ -226,6 +227,11 @@ RUN test "$(printenv SHELL)" = /bin/bash && \
   herdr integration status | grep '^claude: current ' >/dev/null && \
   herdr integration status | grep '^codex: current ' >/dev/null && \
   jq -e '.hooks.SessionStart' ${HOME}/.claude/settings.json >/dev/null && \
+  AUTO_MODE="$(claude auto-mode config)" && \
+  jq -e '.environment | any(startswith("**Trusted repo**"))' <<< "${AUTO_MODE}" >/dev/null && \
+  jq -e '.environment | any(startswith("**Host containment**") and contains("code-devcontainer"))' <<< "${AUTO_MODE}" >/dev/null && \
+  jq -e '.allow | any(startswith("Local Operations:")) and any(startswith("Pod-Local Operations:"))' <<< "${AUTO_MODE}" >/dev/null && \
+  jq -e '.hard_deny | length > 0' <<< "${AUTO_MODE}" >/dev/null && \
   test "$(bash -ic 'alias claude' 2>/dev/null)" = "alias claude='claude --dangerously-skip-permissions'" && \
   test "$(bash -ic 'alias codex' 2>/dev/null)" = "alias codex='codex --no-daemon'" && \
   ! codex login status >/dev/null 2>&1 && \
