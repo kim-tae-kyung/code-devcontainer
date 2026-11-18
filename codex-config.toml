@@ -52,6 +52,8 @@ terminal_resize_reflow_max_rows = 0
 # startup_timeout_sec: headroom for cold `npx -y` installs in a fresh pod.
 # https://github.com/openai/codex/issues/11851
 # tool_timeout_sec: browser navigation/screenshots routinely exceed the 60s default.
+# --isolated: the persistent profile is one per workspace root and admits one
+# browser at a time; concurrent sessions in one checkout would collide.
 [mcp_servers.playwright]
 command = "npx"
 args = [
@@ -60,6 +62,7 @@ args = [
   "--headless",
   "--browser=chromium",
   "--no-sandbox",
+  "--isolated",
 ]
 startup_timeout_sec = 60
 tool_timeout_sec = 120

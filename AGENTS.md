@@ -30,7 +30,9 @@ the smoke test fail loudly on anything it relies on.
 Two files name the server version: `PLAYWRIGHT_MCP_VERSION` in the Dockerfile
 and the `mcp_servers.playwright` args in `codex-config.toml`. The Dockerfile
 registers Claude Code's user-scoped server from the same build arg. Both
-registrations pass `--headless --browser=chromium --no-sandbox`
+registrations pass `--headless --browser=chromium --no-sandbox --isolated`;
+`--isolated` keeps each session's profile in memory, because the persistent
+profile follows the workspace root and admits one browser at a time
 ([Playwright MCP options](https://github.com/microsoft/playwright-mcp#configuration),
 [Claude MCP scopes](https://code.claude.com/docs/en/mcp#user-scope)).
 

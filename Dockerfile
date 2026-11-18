@@ -175,7 +175,7 @@ RUN claude plugin marketplace add anthropics/claude-plugins-official && \
 # https://code.claude.com/docs/en/mcp#user-scope
 RUN claude mcp add --transport stdio --scope user playwright -- \
   npx -y "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" \
-  --headless --browser=chromium --no-sandbox
+  --headless --browser=chromium --no-sandbox --isolated
 
 # Disable the empty-prompt left-arrow gesture that opens the agents view and
 # hands a working session to a background copy. Herdr owns backgrounding here.

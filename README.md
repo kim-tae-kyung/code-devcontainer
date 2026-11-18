@@ -435,8 +435,12 @@ is not an assumption or a control provided by this repository.
   of `/permissions`, which saves to `~/.claude/settings.json`, and check the
   result with `claude auto-mode config`
   ([edit rules](https://code.claude.com/docs/en/auto-mode-config#edit-rules-from-permissions)).
-- **Playwright** receives `--no-sandbox` in both MCP registrations
-  ([server options](https://github.com/microsoft/playwright-mcp#configuration)).
+- **Playwright** receives `--no-sandbox` and `--isolated` in both MCP
+  registrations. Each session's browser profile stays in memory: the
+  persistent profile is one per workspace root and admits one browser at a
+  time, so concurrent sessions started in the same checkout would collide
+  ([server options](https://github.com/microsoft/playwright-mcp#configuration),
+  [user profile](https://github.com/microsoft/playwright-mcp#user-profile)).
   Claude Code's `permissions.allow` lists `mcp__playwright`, so in auto mode
   its tools resolve by rule instead of going to the classifier
   ([MCP rules](https://code.claude.com/docs/en/permissions#mcp),
