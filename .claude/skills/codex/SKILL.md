@@ -40,14 +40,16 @@ Standing rules for every call, using the
   holds only the final message, and read the log's tail when a call fails or
   prints nothing. If the active mode forbids writing the log, leave stderr
   unredirected.
-- Do not pass `-s`. Codex applies the sandbox policy from its config
-  (`sandbox_mode`), which this image sets to full access for trusted IaaS
-  development. The `read-only` and `workspace-write` sandboxes need `bwrap`
-  to create user namespaces, which the Pod does not allow, so with `-s` every
-  command Codex runs fails with `bwrap: No permissions to create new
-  namespace` ([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
-  State the authorized scope in the prompt instead: say "do not modify any
-  files" for questions and reviews. Never pass
+- Do not pass `-s` by default. Codex applies the sandbox policy from its
+  config (`sandbox_mode`), which this image sets to full access for trusted
+  IaaS development. State the authorized scope in the prompt: say "do not
+  modify any files" for questions and reviews. Pass `-s read-only` only when
+  the operating system must enforce that scope and Codex needs neither the
+  network nor the cluster: its commands then run under `bwrap` without
+  either ([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
+  A Pod from this repository's launcher permits `bwrap`. Where a command
+  fails with `bwrap: No permissions to create a new namespace`, the
+  container does not: drop `-s`. Never pass
   `--dangerously-bypass-approvals-and-sandbox`.
 - Always pass `--ephemeral` (no session files in a disposable pod) and
   `--skip-git-repo-check` (the working directory may not be a git repository).

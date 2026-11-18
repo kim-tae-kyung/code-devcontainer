@@ -9,10 +9,24 @@ IMAGE="${IMAGE:-ghcr.io/kim-tae-kyung/code-devcontainer:latest}"
 
 echo "Creating pod $POD_NAME..."
 
+# Codex's read-only and workspace-write sandboxes run each command under
+# bwrap, which creates a user namespace and mounts a fresh /proc. A seccomp
+# default profile refuses the first and the container's masked /proc the
+# second; Kubernetes allows an unmasked /proc only in a Pod that has its own
+# user namespace, which needs Linux 6.3+ and containerd 2.0+ or CRI-O 1.25+.
+# https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/
+# https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#proc-access
+# The container entry repeats name, image and pull policy because the override
+# replaces the whole list.
 OVERRIDES=$(jq -n \
+    --arg name "$POD_NAME" \
+    --arg image "$IMAGE" \
     --arg sa "${SERVICE_ACCOUNT:-}" \
     --arg node "${NODE_NAME:-}" \
-    '{spec: {shareProcessNamespace: true, tolerations: [
+    '{spec: {shareProcessNamespace: true, hostUsers: false,
+        containers: [{name: $name, image: $image, imagePullPolicy: "Always",
+            securityContext: {seccompProfile: {type: "Unconfined"}, procMount: "Unmasked"}}],
+        tolerations: [
         {key: "node-role.kubernetes.io/control-plane", operator: "Exists", effect: "NoSchedule"}
     ]}}
     * (if $sa != "" then {spec: {serviceAccountName: $sa}} else {} end)

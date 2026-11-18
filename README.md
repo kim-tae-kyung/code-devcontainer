@@ -46,6 +46,14 @@ kubectl exec -it devcontainer-<timestamp> -- herdr
 kubectl exec -it devcontainer-<timestamp> -- /bin/bash
 ```
 
+The launcher gives the Pod its own user namespace (`hostUsers: false`), an
+unmasked `/proc` and no seccomp profile, the three settings `bwrap` needs for
+Codex's command sandbox. The nodes need Linux 6.3 or later and containerd 2.0
+or CRI-O 1.25 or later
+([user namespaces](https://kubernetes.io/docs/concepts/workloads/pods/user-namespaces/),
+[`/proc` access](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#proc-access),
+[seccomp profile](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-seccomp-profile-for-a-container)).
+
 Add `-n NAMESPACE` to any of these commands when using a non-default namespace.
 No initial Bash session is needed. kubectl starts the command before the
 container runtime applies the local terminal size, and Herdr exits on a
@@ -381,10 +389,14 @@ Claude invokes them from ordinary language ("ask codex", "codex한테 이 plan
   the path and dimensions.
 
 Every call inherits the configured `danger-full-access` policy described under
-[Security model](#security-model). Codex's `read-only` and `workspace-write`
-sandboxes need `bwrap` to create user namespaces, which the Pod does not allow,
-so the skills never pass `-s` and state a read-only scope in the prompt instead
-([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
+[Security model](#security-model), and the skills state a read-only scope in
+the prompt. Codex's `read-only` and `workspace-write` sandboxes run each
+command under `bwrap`, which creates a user namespace and mounts a fresh
+`/proc` ([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
+The launcher's Pod permits both, so `-s read-only` is available when the
+operating system must enforce the scope; sandboxed commands reach neither the
+network nor the cluster. A container without those Pod settings fails every
+sandboxed command with `bwrap: No permissions to create a new namespace`.
 The skill files hold the remaining call rules: flags, stdin and stderr handling,
 and foreground or background timeouts by workload. Codex needs its own login in
 the Pod; check it with `codex login status`

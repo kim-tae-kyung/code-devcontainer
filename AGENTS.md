@@ -140,10 +140,13 @@ is intentional; the installed CLI remains the authority for supported commands
 The Claude `codex` and `codex-imagegen` skills use `codex exec` with
 `--ephemeral` and `--skip-git-repo-check`. Keep read-only intent explicit for
 reviews, use proper shell quoting, and inherit the configured sandbox policy
-rather than adding `-s` or bypass flags
+by default: `-s read-only` is for a scope the operating system must enforce,
+and bypass flags are never added
 ([non-interactive execution](https://learn.chatgpt.com/docs/non-interactive-mode)).
-The Pod does not let `bwrap` create user namespaces, so Codex's `read-only`
-and `workspace-write` sandboxes fail every command
+Codex's `read-only` and `workspace-write` sandboxes run commands under
+`bwrap`, which creates a user namespace and mounts `/proc`. The launcher's
+`hostUsers: false`, seccomp `Unconfined` and `procMount: Unmasked` exist for
+that: keep the three together
 ([OS-level sandbox](https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox)).
 Calls pick foreground or `run_in_background` and the Bash `timeout` by
 workload, and wait for the completion notification. Never cap Codex with
