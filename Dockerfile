@@ -86,7 +86,7 @@ RUN curl --proto '=https' --tlsv1.2 -fsSL https://sh.rustup.rs | \
 # The server runs the full Chromium build in headless mode (the `chromium`
 # channel), so the separate headless shell is not installed.
 # https://playwright.dev/docs/browsers#chromium-new-headless-mode
-ARG PLAYWRIGHT_MCP_VERSION=0.0.85
+ARG PLAYWRIGHT_MCP_VERSION=0.0.86
 RUN set -e; \
   PLAYWRIGHT_CORE="$(npm view "@playwright/mcp@${PLAYWRIGHT_MCP_VERSION}" dependencies.playwright)"; \
   if ! echo "${PLAYWRIGHT_CORE}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$'; then \
